@@ -2,6 +2,10 @@
 
 #include "App.h"
 
+#include <format>
+
+#include "Graphics.h"
+
 App::App()
 {
 	m_Width = 1920;
@@ -32,6 +36,10 @@ App::App()
 	}
 	// SDL_SetRenderVSync(m_Renderer, SDL_RENDERER_VSYNC_ADAPTIVE);
 
+	SDL_DisplayID displayID = SDL_GetDisplayForWindow(m_Window);
+	const SDL_DisplayMode* displayMode = SDL_GetCurrentDisplayMode(displayID);
+	m_TargetFPS = displayMode->refresh_rate / 4;
+
 	SDL_SetRenderLogicalPresentation(m_Renderer, m_LogicW, m_LogicH, SDL_LOGICAL_PRESENTATION_LETTERBOX);
 
 	if (success)
@@ -46,73 +54,8 @@ App::~App()
 int App::Run()
 {
 	if (!success) return 1;
-	// InitWindow(1920, 1080, "Raylib");
-	// SetTargetFPS(60);
-	//
-	// capybara = LoadModel("resources/models/icosahedron.obj");
-	// electra = LoadModel("resources/models/electra.gltf");
-	//
-	// // std::cout << IsModelValid(capybara) << std::endl;
-	//
-	// if (!FileExists("resources/models/african_head.obj"))
-	// {
-	// 	TraceLog(LOG_WARNING, "Model file not found!");
-	// }
-	//
-	// while (!WindowShouldClose()) {
-	// 	BeginDrawing();
-	// 	// DrawModel(capybara);
-	// 	ClearBackground(BLACK);
-	//
-	// 	// graphics::Line(100, 100, 500, 200, 8, RED);
-	// 	// graphics::Line(150, 100, 200, 800, 8, GREEN);
-	// 	// graphics::Line(500, 50, 200, 800, 8, BLUE);
-	//
-	// 	Graphics::Circle(960, 540, 200, 4, BLUE);
-	//
-	// 	DrawText(std::format("electra.meshes: {}", electra.meshCount).c_str(), 10, 50, 30, WHITE);
-	//
-	// 	for (int i = 0; i < capybara.meshes[0].vertexCount; i+=3)
-	// 	{
-	// 		float* vertices = capybara.meshes[0].vertices;
-	// 		Vector2 v0 = {vertices[i*3], vertices[i*3+1]};
-	// 		Vector2 v1 = {vertices[(i + 1)*3], vertices[(i + 1)*3+1]};
-	// 		Vector2 v2 = {vertices[(i + 2)*3], vertices[(i + 2)*3+1]};
-	// 		v0.x += 1.0;
-	// 		v0.x *= (float)1920/2;
-	// 		v0.y += 1.0;
-	// 		v0.y = 1.0f - v0.y + 1.0f;
-	// 		v0.y *= (float)1080/2;
-	//
-	// 		v1.x += 1.0;
-	// 		v1.x *= (float)1920/2;
-	// 		v1.y += 1.0;
-	// 		v1.y = 1.0f - v1.y + 1.0f;
-	// 		v1.y *= (float)1080/2;
-	//
-	// 		v2.x += 1.0;
-	// 		v2.x *= (float)1920/2;
-	// 		v2.y += 1.0;
-	// 		v2.y = 1.0f - v2.y + 1.0f;
-	// 		v2.y *= (float)1080/2;
-	//
-	// 		v0.x *= (float)1080/1920;
-	// 		v1.x *= (float)1080/1920;
-	// 		v2.x *= (float)1080/1920;
-	// 		Graphics::Line(v0, v1, 1, RED);
-	// 		Graphics::Line(v1, v2, 1, GREEN);
-	// 		Graphics::Line(v2, v0, 1, BLUE);
-	// 	}
-	//
-	// 	EndDrawing();
-	// }
-	//
-	// CloseWindow();
-
-
 	DoFrame();
 	CleanUp();
-
 	return 0;
 }
 
@@ -120,27 +63,48 @@ void App::DoFrame()
 {
 	uint64_t prevTime = SDL_GetPerformanceCounter();
 	uint64_t frequency = SDL_GetPerformanceFrequency();
+	double targetTime = (m_TargetFPS > 0)? 1.0/(double)m_TargetFPS : 0.0;
+
+	uint64_t prevFrameStart = SDL_GetPerformanceCounter();
+	double fpsAcc = 0.0;
+	int fpsFrames = 0;
+	double fps = 0.0;
+	std::string fpsStr = "FPS: 0";
+
+	float x = 35;
 
 	// Game Loop
 	bool running = true;
 	while (running)
 	{
-		uint64_t nowTime = SDL_GetPerformanceCounter();
-		float deltaTime = (nowTime - prevTime) / (float)frequency;
+		uint64_t frameStart = SDL_GetPerformanceCounter();
+		double deltaTime = (double)(frameStart - prevFrameStart) / (double)frequency;
+		prevFrameStart = frameStart;
 
 		SDL_Event event{0};
 		while (SDL_PollEvent(&event))
 		{
 			switch (event.type)
 			{
-			case SDL_EVENT_QUIT:
-				running = false;
-				break;
+				case SDL_EVENT_QUIT:
+					running = false;
+					break;
 
-			case SDL_EVENT_WINDOW_RESIZED:
-				m_Width = event.window.data1;
-				m_Height = event.window.data2;
-				break;
+				case SDL_EVENT_WINDOW_RESIZED:
+					m_Width = event.window.data1;
+					m_Height = event.window.data2;
+					break;
+				case SDL_EVENT_KEY_DOWN:
+					if (event.key.scancode == SDL_SCANCODE_A)
+					{
+						x+=10;
+					}
+					if (event.key.scancode == SDL_SCANCODE_D)
+					{
+						x-=10;
+					}
+					break;
+
 			}
 		}
 
@@ -148,16 +112,38 @@ void App::DoFrame()
 		SDL_SetRenderDrawColor(m_Renderer, 20,20,20,255);
 		SDL_RenderClear(m_Renderer);
 
-		SDL_SetRenderDrawColor(m_Renderer, 200, 20, 20, 255);
-		for (int i = -5; i < 5; i++)
+		SDL_SetRenderDrawColor(m_Renderer, 50, 50, 50, 255);
+
+		Graphics::Grid(m_Renderer, m_LogicW, m_LogicH, 10);
+
+		SDL_SetRenderDrawColor(m_Renderer, 200, 50, 50, 255);
+		Graphics::Line(m_Renderer, 15, 15, x, 100, 5);
+
+		// FPS
+		fpsAcc += deltaTime;
+		fpsFrames++;
+		if (fpsAcc >= 0.05)
 		{
-			for (int j = -5; j < 5; j++)
-			{
-				SDL_RenderPoint(m_Renderer, 240 + i, 135 + j);
-			}
+			fps = (double)fpsFrames / fpsAcc;
+			fpsAcc = 0.0;
+			fpsFrames = 0;
+			fpsStr = std::format("FPS: {:.1f}", fps);
 		}
+		SDL_SetRenderDrawColor(m_Renderer, 255,255,255,255);
+		SDL_RenderDebugText(m_Renderer, 5, 5, fpsStr.c_str());
 
 		SDL_RenderPresent(m_Renderer);
+
+		if(targetTime > 0.0)
+		{
+			uint64_t frameEnd = SDL_GetPerformanceCounter();
+			double frameTime = (double)(frameEnd - frameStart)/(double)frequency;
+			if (frameTime < targetTime)
+			{
+				double sleep = (targetTime - frameTime) * 1000.0;
+				SDL_Delay((Uint32)sleep);
+			}
+		}
 	}
 }
 

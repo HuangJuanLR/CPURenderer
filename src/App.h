@@ -16,10 +16,9 @@ private:
 public:
 	bool success = true;
 private:
-	// Model capybara;
-	// Model electra;
 	SDL_Window* m_Window;
 	SDL_Renderer* m_Renderer;
 	int m_Width, m_Height;
 	int m_LogicW, m_LogicH;
+	int m_TargetFPS;
 };

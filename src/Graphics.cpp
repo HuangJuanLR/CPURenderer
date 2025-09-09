@@ -1,7 +1,8 @@
 #include <math.h>
 #include "Graphics.h"
 
-void Graphics::Line(int x1, int y1, int x2, int y2, int zoom, const SDL_Color color) {
+void Graphics::Line(SDL_Renderer* renderer, int x1, int y1, int x2, int y2, int zoom)
+{
     bool steep = std::abs(y2 - y1) > std::abs(x2 - x1);
 	if (steep)
 	{
@@ -27,7 +28,7 @@ void Graphics::Line(int x1, int y1, int x2, int y2, int zoom, const SDL_Color co
 		{
 			for (int w = -zoom; w < zoom; w++)
 			{
-				// steep? DrawPixel(y + w, i + z, color) : DrawPixel(i + z, y + w, color);
+				steep? SDL_RenderPoint(renderer, y + w, i + z) : SDL_RenderPoint(renderer, i + z, y + w);
 			}
 		}
 
@@ -40,12 +41,12 @@ void Graphics::Line(int x1, int y1, int x2, int y2, int zoom, const SDL_Color co
 	}
 }
 
-void Graphics::Line(glm::vec2 start, glm::vec2 end, int zoom, const SDL_Color color)
+void Graphics::Line(SDL_Renderer* renderer, glm::vec2 start, glm::vec2 end, int zoom)
 {
-	Line(start.x, start.y, end.x, end.y, zoom, color);
+	Line(renderer, start.x, start.y, end.x, end.y, zoom);
 }
 
-void Graphics::Circle(int xc, int yc, int radius, int zoom, const SDL_Color color)
+void Graphics::Circle(int xc, int yc, int radius, int zoom)
 {
 	int d = 3 - 2 * radius;
 	int x = 0, y = radius;
@@ -63,11 +64,32 @@ void Graphics::Circle(int xc, int yc, int radius, int zoom, const SDL_Color colo
 		}
 		x++;
 
-		DrawCirclePoint(xc, yc, x, y, zoom, color);
+		DrawCirclePoint(xc, yc, x, y, zoom);
 	}
 }
 
-void Graphics::DrawCirclePoint(int xc, int yc, int x, int y, int zoom, const SDL_Color color)
+void Graphics::Grid(SDL_Renderer* renderer, const int width, const int height, const int size)
+{
+	int cols = std::ceil(width / size) - 1;
+	int rows = std::ceil(height / size) - 1;
+
+	for (int col = 1; col <= cols; col++)
+	{
+		for (int i = 0; i < height; i++)
+		{
+			SDL_RenderPoint(renderer, col * size, i);
+		}
+	}
+	for (int row = 1; row <= rows; row++)
+	{
+		for (int i = 0; i < width; i++)
+		{
+			SDL_RenderPoint(renderer, i, row * size);
+		}
+	}
+}
+
+void Graphics::DrawCirclePoint(int xc, int yc, int x, int y, int zoom)
 {
 	for (int i = -zoom; i < zoom; i++)
 	{
