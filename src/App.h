@@ -1,6 +1,7 @@
 #pragma once
 #include "SDL3/SDL.h"
 #include <glm.hpp>
+#include "assimp/scene.h"
 
 class App
 {
