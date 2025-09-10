@@ -8,10 +8,10 @@ public:
 	App();
 	~App();
 
-	int Run();
+	int Start();
 
 private:
-	void DoFrame();
+	void Update();
 	void CleanUp() const;
 public:
 	bool success = true;
@@ -21,4 +21,5 @@ private:
 	int m_Width, m_Height;
 	int m_LogicW, m_LogicH;
 	int m_TargetFPS;
+	const bool* m_Keys;
 };

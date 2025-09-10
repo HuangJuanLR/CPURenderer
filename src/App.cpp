@@ -6,7 +6,7 @@
 
 #include "Graphics.h"
 
-App::App()
+App::App(): m_Keys(SDL_GetKeyboardState(nullptr))
 {
 	m_Width = 1920;
 	m_Height = 1080;
@@ -51,19 +51,19 @@ App::~App()
 	CleanUp();
 }
 
-int App::Run()
+int App::Start()
 {
 	if (!success) return 1;
-	DoFrame();
+	Update();
 	CleanUp();
 	return 0;
 }
 
-void App::DoFrame()
+void App::Update()
 {
 	uint64_t prevTime = SDL_GetPerformanceCounter();
 	uint64_t frequency = SDL_GetPerformanceFrequency();
-	double targetTime = (m_TargetFPS > 0)? 1.0/(double)m_TargetFPS : 0.0;
+	double targetTime = (m_TargetFPS > 0)? 1.0/static_cast<double>(m_TargetFPS) : 0.0;
 
 	uint64_t prevFrameStart = SDL_GetPerformanceCounter();
 	double fpsAcc = 0.0;
@@ -71,14 +71,15 @@ void App::DoFrame()
 	double fps = 0.0;
 	std::string fpsStr = "FPS: 0";
 
-	float x = 35;
+	int lineX = 10;
+	int lineY = 10;
 
 	// Game Loop
 	bool running = true;
 	while (running)
 	{
 		uint64_t frameStart = SDL_GetPerformanceCounter();
-		double deltaTime = (double)(frameStart - prevFrameStart) / (double)frequency;
+		double deltaTime = static_cast<double>(frameStart - prevFrameStart) / static_cast<double>(frequency);
 		prevFrameStart = frameStart;
 
 		SDL_Event event{0};
@@ -94,18 +95,24 @@ void App::DoFrame()
 					m_Width = event.window.data1;
 					m_Height = event.window.data2;
 					break;
-				case SDL_EVENT_KEY_DOWN:
-					if (event.key.scancode == SDL_SCANCODE_A)
-					{
-						x+=10;
-					}
-					if (event.key.scancode == SDL_SCANCODE_D)
-					{
-						x-=10;
-					}
-					break;
-
 			}
+		}
+
+		if (m_Keys[SDL_SCANCODE_W])
+		{
+			lineY-=10;
+		}
+		if (m_Keys[SDL_SCANCODE_A])
+		{
+			lineX-=10;
+		}
+		if (m_Keys[SDL_SCANCODE_S])
+		{
+			lineY+=10;
+		}
+		if (m_Keys[SDL_SCANCODE_D])
+		{
+			lineX+=10;
 		}
 
 		// draw
@@ -117,14 +124,14 @@ void App::DoFrame()
 		Graphics::Grid(m_Renderer, m_LogicW, m_LogicH, 10);
 
 		SDL_SetRenderDrawColor(m_Renderer, 200, 50, 50, 255);
-		Graphics::Line(m_Renderer, 15, 15, x, 100, 5);
+		Graphics::Line(m_Renderer, 240, 135, lineX, lineY, 5);
 
 		// FPS
 		fpsAcc += deltaTime;
 		fpsFrames++;
 		if (fpsAcc >= 0.05)
 		{
-			fps = (double)fpsFrames / fpsAcc;
+			fps = static_cast<double>(fpsFrames) / fpsAcc;
 			fpsAcc = 0.0;
 			fpsFrames = 0;
 			fpsStr = std::format("FPS: {:.1f}", fps);
@@ -137,11 +144,11 @@ void App::DoFrame()
 		if(targetTime > 0.0)
 		{
 			uint64_t frameEnd = SDL_GetPerformanceCounter();
-			double frameTime = (double)(frameEnd - frameStart)/(double)frequency;
+			double frameTime = static_cast<double>(frameEnd - frameStart)/static_cast<double>(frequency);
 			if (frameTime < targetTime)
 			{
 				double sleep = (targetTime - frameTime) * 1000.0;
-				SDL_Delay((Uint32)sleep);
+				SDL_Delay(static_cast<Uint32>(sleep));
 			}
 		}
 	}

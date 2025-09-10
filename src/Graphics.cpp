@@ -3,40 +3,33 @@
 
 void Graphics::Line(SDL_Renderer* renderer, int x1, int y1, int x2, int y2, int zoom)
 {
-    bool steep = std::abs(y2 - y1) > std::abs(x2 - x1);
-	if (steep)
-	{
-		std::swap(x1, y1);
-		std::swap(x2, y2);
-	}
-	if (x1 > x2)
-	{
-		std::swap(x1, x2);
-		std::swap(y1, y2);
-	}
+	int dx = abs(x2 - x1);
+	int sx = x1 < x2? zoom : -zoom;
+	int dy = -abs(y2 - y1);
+	int sy = y1 < y2? zoom : -zoom;
+	int error = dx + dy;
 
-	int deltax = x2 - x1;
-	int deltay = abs(y2 - y1);
-	int error = deltax / 2;
-
-	int ystep = y1 < y2 ? zoom : -zoom;;
-	int y = y1;
-
-	for (int i = x1; i < x2; i+=zoom)
+	while (true)
 	{
 		for (int z = -zoom; z < zoom; z++)
 		{
 			for (int w = -zoom; w < zoom; w++)
 			{
-				steep? SDL_RenderPoint(renderer, y + w, i + z) : SDL_RenderPoint(renderer, i + z, y + w);
+				SDL_RenderPoint(renderer, x1 + z, y1 + w);
 			}
 		}
-
-		error = error - deltay;
-		if (error < 0)
+		int e2 = 2 * error;
+		if (e2 >= dy) // x2 >= x1
 		{
-			y += ystep;
-			error += deltax;
+			if (x1 == x2) break;
+			error += dy;
+			x1 = x1 + sx;
+		}
+		if (e2 <= dx) // y2 >= y1
+		{
+			if (y1 == y2) break;
+			error += dx;
+			y1 = y1 + sy;
 		}
 	}
 }
