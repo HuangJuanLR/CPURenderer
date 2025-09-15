@@ -1,6 +1,8 @@
 #pragma once
 #include "SDL3/SDL.h"
 #include <glm.hpp>
+
+#include "Model.h"
 #include "assimp/scene.h"
 
 class App
@@ -23,4 +25,6 @@ private:
 	int m_LogicW, m_LogicH;
 	int m_TargetFPS;
 	const bool* m_Keys;
+
+	Model m_CapybaraModel;
 };

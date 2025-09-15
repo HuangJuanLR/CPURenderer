@@ -1,12 +1,12 @@
 #include <iostream>
-
-#include "App.h"
-
 #include <format>
 
+#include "App.h"
 #include "Graphics.h"
 
-App::App(): m_Keys(SDL_GetKeyboardState(nullptr))
+App::App():
+	m_Keys(SDL_GetKeyboardState(nullptr)),
+	m_CapybaraModel("resources/assets/models/capybara.fbx")
 {
 	m_Width = 1920;
 	m_Height = 1080;
@@ -125,6 +125,12 @@ void App::Update()
 
 		SDL_SetRenderDrawColor(m_Renderer, 200, 50, 50, 255);
 		Graphics::Line(m_Renderer, 240, 135, lineX, lineY, 5);
+
+		// model
+		SDL_SetRenderDrawColor(m_Renderer, 255,255,255,255);
+		const auto& mesh = m_CapybaraModel.GetMeshes()[0];
+		std::string modelInfo = std::format("Model: {}", mesh.vertices.size());
+		SDL_RenderDebugText(m_Renderer, 5, 15, modelInfo.c_str());
 
 		// FPS
 		fpsAcc += deltaTime;
