@@ -2,6 +2,7 @@
   <dictionary name="project">
     <words>
       <w>texcoord</w>
+      <w>zbuffer</w>
     </words>
   </dictionary>
 </component>

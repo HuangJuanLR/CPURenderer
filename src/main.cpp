@@ -6,7 +6,12 @@ int main(int argc, char* argv[])
 {
 	try
 	{
-		return App{}.Start();
+		App& app = App::GetInstance();
+		int res = app.Start();
+
+		App::Destroy();
+
+		return res;
 	}
 	catch (const std::exception& e)
 	{

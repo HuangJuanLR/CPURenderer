@@ -1,4 +1,5 @@
 #pragma once
+#include <random>
 #include <string>
 #include <vector>
 #include <assimp/scene.h>
@@ -19,9 +20,16 @@ struct Mesh
 {
 	std::vector<Vertex> vertices;
 	std::vector<unsigned int> indices;
+	std::vector<SDL_Color> colors;
 
 	Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices)
 	: vertices(vertices), indices(indices)
+	{
+
+	}
+
+	Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices, const std::vector<SDL_Color>& colors)
+	: vertices(vertices), indices(indices), colors(colors)
 	{
 
 	}
@@ -38,11 +46,16 @@ public:
 
 	const std::vector<Mesh>& GetMeshes() const {return m_Meshes;}
 
-	void DrawMesh();
-private:
-
-
+	void DrawTriangle(SDL_Renderer* renderer);
 private:
 	Assimp::Importer m_Importer;
 	std::vector<Mesh> m_Meshes;
+
+	std::mt19937 m_Rng;
+	std::uniform_int_distribution<int> m_Dist;
+
+	std::vector<uint8_t> m_Zbuffer;
+
+	int m_ScreenWidth;
+	int m_ScreenHeight;
 };

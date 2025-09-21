@@ -4,14 +4,15 @@
 #include "App.h"
 #include "Graphics.h"
 
+App* App::s_Instance = nullptr;
+
 App::App():
-	m_Keys(SDL_GetKeyboardState(nullptr)),
-	m_CapybaraModel("resources/assets/models/capybara.fbx")
+	m_Keys(SDL_GetKeyboardState(nullptr))
 {
 	m_Width = 1920;
 	m_Height = 1080;
-	m_LogicW = 480;
-	m_LogicH = 270;
+	m_LogicW = 960;
+	m_LogicH = 540;
 
 	if (!SDL_Init(SDL_INIT_VIDEO))
 	{
@@ -44,11 +45,31 @@ App::App():
 
 	if (success)
 		std::cout << "SDL3 Initialized" << std::endl;
+
+	m_CapybaraModel = std::make_unique<Model>("resources/assets/models/capybara.fbx");
 }
 
 App::~App()
 {
 	CleanUp();
+}
+
+App& App::GetInstance()
+{
+	if (s_Instance == nullptr)
+	{
+		s_Instance = new App();
+	}
+	return *s_Instance;
+}
+
+void App::Destroy()
+{
+	if (s_Instance != nullptr)
+	{
+		delete s_Instance;
+		s_Instance = nullptr;
+	}
 }
 
 int App::Start()
@@ -124,13 +145,23 @@ void App::Update()
 		Graphics::Grid(m_Renderer, m_LogicW, m_LogicH, 10);
 
 		SDL_SetRenderDrawColor(m_Renderer, 200, 50, 50, 255);
-		Graphics::Line(m_Renderer, 240, 135, lineX, lineY, 5);
+		Graphics::Line(m_Renderer, 240, 135, lineX, lineY, 1);
+
+		SDL_SetRenderDrawColor(m_Renderer, 50, 200, 50, 255);
+		glm::vec3 p0 = glm::vec3(240.f, 135.f, 0.0f);
+		glm::vec3 p1 = glm::vec3((float)lineX, (float)lineY, 0.0f);
+		glm::vec3 p2 = glm::vec3(240.f, 50.f, 0.0f);
+
+		Graphics::Triangle(m_Renderer, p0, p1, p2);
 
 		// model
+
 		SDL_SetRenderDrawColor(m_Renderer, 255,255,255,255);
-		const auto& mesh = m_CapybaraModel.GetMeshes()[0];
+		const auto& mesh = m_CapybaraModel->GetMeshes()[0];
 		std::string modelInfo = std::format("Model: {}", mesh.vertices.size());
 		SDL_RenderDebugText(m_Renderer, 5, 15, modelInfo.c_str());
+
+		m_CapybaraModel->DrawTriangle(m_Renderer);
 
 		// FPS
 		fpsAcc += deltaTime;

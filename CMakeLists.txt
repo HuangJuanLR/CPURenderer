@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 4.0)
 project(CPURenderer)
 
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
+if(WIN32)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
+endif()
 
 include_directories(Dependencies/sdl3/include)
 include_directories(Dependencies/glm)
