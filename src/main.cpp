@@ -1,15 +1,17 @@
 #include <iostream>
 
 #include "App.h"
+#include "Log.h"
 
 int main(int argc, char* argv[])
 {
 	try
 	{
-		App& app = App::GetInstance();
+		CPURDR::Log::Init();
+		CPURDR::App& app = CPURDR::App::GetInstance();
 		int res = app.Start();
 
-		App::Destroy();
+		CPURDR::App::Destroy();
 
 		return res;
 	}

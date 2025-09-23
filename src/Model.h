@@ -9,53 +9,56 @@
 #include "assimp/Importer.hpp"
 #include "SDL3/SDL.h"
 
-struct Vertex
+namespace CPURDR
 {
-	glm::vec3 position;
-	glm::vec2 texcoord;
-	glm::vec3 normal;
-};
-
-struct Mesh
-{
-	std::vector<Vertex> vertices;
-	std::vector<unsigned int> indices;
-	std::vector<SDL_Color> colors;
-
-	Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices)
-	: vertices(vertices), indices(indices)
+	struct Vertex
 	{
+		glm::vec3 position;
+		glm::vec2 texcoord;
+		glm::vec3 normal;
+	};
 
-	}
-
-	Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices, const std::vector<SDL_Color>& colors)
-	: vertices(vertices), indices(indices), colors(colors)
+	struct Mesh
 	{
+		std::vector<Vertex> vertices;
+		std::vector<unsigned int> indices;
+		std::vector<SDL_Color> colors;
 
-	}
-};
+		Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices)
+		: vertices(vertices), indices(indices)
+		{
 
-class Model
-{
-public:
-	Model(const std::string& file);
-	~Model() noexcept;
+		}
 
-	int GetVertices(const int index);
-	int GetVertices(const int primitiveIndex, const int index);
+		Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices, const std::vector<SDL_Color>& colors)
+		: vertices(vertices), indices(indices), colors(colors)
+		{
 
-	const std::vector<Mesh>& GetMeshes() const {return m_Meshes;}
+		}
+	};
 
-	void DrawTriangle(SDL_Renderer* renderer);
-private:
-	Assimp::Importer m_Importer;
-	std::vector<Mesh> m_Meshes;
+	class Model
+	{
+	public:
+		Model(const std::string& file);
+		~Model() noexcept;
 
-	std::mt19937 m_Rng;
-	std::uniform_int_distribution<int> m_Dist;
+		int GetVertices(const int index);
+		int GetVertices(const int primitiveIndex, const int index);
 
-	std::vector<uint8_t> m_Zbuffer;
+		const std::vector<Mesh>& GetMeshes() const {return m_Meshes;}
 
-	int m_ScreenWidth;
-	int m_ScreenHeight;
-};
+		void DrawTriangle(SDL_Renderer* renderer);
+	private:
+		Assimp::Importer m_Importer;
+		std::vector<Mesh> m_Meshes;
+
+		std::mt19937 m_Rng;
+		std::uniform_int_distribution<int> m_Dist;
+
+		std::vector<uint8_t> m_Zbuffer;
+
+		int m_ScreenWidth;
+		int m_ScreenHeight;
+	};
+}
