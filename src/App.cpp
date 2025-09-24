@@ -85,7 +85,6 @@ namespace CPURDR
 
 	void App::Update()
 	{
-		uint64_t prevTime = SDL_GetPerformanceCounter();
 		uint64_t frequency = SDL_GetPerformanceFrequency();
 		double targetTime = (m_TargetFPS > 0)? 1.0/static_cast<double>(m_TargetFPS) : 0.0;
 
@@ -141,7 +140,7 @@ namespace CPURDR
 
 			if (m_Keys[SDL_SCANCODE_SPACE])
 			{
-				Log::GetLogger()->warn("Spacer pressed");
+				PLOGW << "Spacer pressed";
 			}
 
 			// draw

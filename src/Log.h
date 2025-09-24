@@ -1,6 +1,6 @@
 #pragma once
-#include <memory>
-#include "spdlog/spdlog.h"
+#include "plog/Log.h"
+#include <plog/Initializers/ConsoleInitializer.h>
 
 namespace CPURDR
 {
@@ -8,10 +8,5 @@ namespace CPURDR
 	{
 	public:
 		static void Init();
-
-		static std::shared_ptr<spdlog::logger>& GetLogger() {return s_Logger;}
-	private:
-		static std::shared_ptr<spdlog::logger> s_Logger;
-
 	};
 }

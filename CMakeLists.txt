@@ -8,11 +8,12 @@ endif()
 
 include_directories(Dependencies/sdl3/include)
 include_directories(Dependencies/glm)
-include_directories(Dependencies/spdlog/include)
 include_directories(Dependencies/assimp/include)
+include_directories(Dependencies/plog/include)
 
 add_executable(${PROJECT_NAME})
 add_subdirectory(src)
+add_subdirectory(Dependencies/plog)
 
 find_library(SDL3
         NAMES libSDL3.dll.a SDL3
@@ -29,16 +30,11 @@ find_library(ASSIMP
         PATHS Dependencies/assimp/lib
         NO_DEFAULT_PATH
 )
-find_library(SPDLOG
-        NAMES libspdlog.dll.a SPDLOG
-        PATHS Dependencies/spdlog/lib
-        NO_DEFAULT_PATH
-)
 
 target_link_libraries(${PROJECT_NAME} ${SDL3})
 target_link_libraries(${PROJECT_NAME} ${ZLIB})
 target_link_libraries(${PROJECT_NAME} ${ASSIMP})
-target_link_libraries(${PROJECT_NAME} ${SPDLOG})
+target_link_libraries(${PROJECT_NAME} plog::plog)
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -55,12 +51,6 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${CMAKE_SOURCE_DIR}/Dependencies/assimp/bin/libassimp-6.dll
-        $<TARGET_FILE_DIR:${PROJECT_NAME}>
-)
-
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_SOURCE_DIR}/Dependencies/spdlog/bin/libspdlog-1.15.dll
         $<TARGET_FILE_DIR:${PROJECT_NAME}>
 )
 
