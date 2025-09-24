@@ -140,7 +140,12 @@ namespace CPURDR
 
 			if (m_Keys[SDL_SCANCODE_SPACE])
 			{
-				PLOGW << "Spacer pressed";
+				PLOG_VERBOSE << "This is a VERBOSE message";
+				PLOG_DEBUG << "This is a DEBUG message";
+				PLOG_INFO << "This is an INFO message";
+				PLOG_WARNING << "This is a WARNING message";
+				PLOG_ERROR << "This is an ERROR message";
+				PLOG_FATAL << "This is a FATAL message";
 			}
 
 			// draw

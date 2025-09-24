@@ -1,6 +1,5 @@
 #pragma once
 #include "plog/Log.h"
-#include <plog/Initializers/ConsoleInitializer.h>
 
 namespace CPURDR
 {
