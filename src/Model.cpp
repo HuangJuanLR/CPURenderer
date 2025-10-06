@@ -1,12 +1,10 @@
-#include "Model.h"
-
 #include <iostream>
-
-#include "App.h"
-#include "Graphics.h"
 #include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
 #include "SDL3/SDL_messagebox.h"
+#include "Model.h"
+#include "App.h"
+#include "Graphics.h"
 
 namespace CPURDR
 {
@@ -105,7 +103,17 @@ namespace CPURDR
 		App& app = App::GetInstance();
 		int width = app.GetWidth();
 		int height = app.GetHeight();
-		m_Zbuffer.reserve(width * height);
+
+		static Texture2D_RFloat depthBuffer(width, height, 1.0f);
+
+		// Resize when window changed
+		if (depthBuffer.GetWidth() != width || depthBuffer.GetHeight() != height)
+		{
+			depthBuffer.Resize(width, height, 1.0f);
+		}
+
+		// Clear every frame
+		depthBuffer.Clear(1.0f);
 
 		for (int i = 0; i < m_Meshes.size(); i++)
 		{
@@ -116,6 +124,8 @@ namespace CPURDR
 				glm::vec3 p0 = vertices[indices[j]].position;
 				glm::vec3 p1 = vertices[indices[j + 1]].position;
 				glm::vec3 p2 = vertices[indices[j + 2]].position;
+
+				// Capybara model's z is -1 ~ 1 in Houdini
 				p0 += glm::vec3(0, 0, 1);
 				p0 *= glm::vec3(1, 1, 0.5);
 				p1 += glm::vec3(0, 0, 1);
@@ -125,9 +135,15 @@ namespace CPURDR
 				p0 = p0 * glm::vec3(300, 300, 255) + glm::vec3(480, 270, 0);
 				p1 = p1 * glm::vec3(300, 300, 255) + glm::vec3(480, 270, 0);
 				p2 = p2 * glm::vec3(300, 300, 255) + glm::vec3(480, 270, 0);
+
+				// Normalize Z
+				p0.z /= 255.0f;
+				p1.z /= 255.0f;
+				p2.z /= 255.0f;
+
 				const SDL_Color col = (t < m_Meshes[i].colors.size())? m_Meshes[i].colors[t] : SDL_Color{255, 255, 255, 255};
 				SDL_SetRenderDrawColor(renderer, col.r, col.g, col.b, 255);
-				Graphics::Triangle(renderer, p0, p1, p2, width, height, m_Zbuffer);
+				Graphics::Triangle(renderer, p0, p1, p2, width, height, depthBuffer);
 				// Graphics::Triangle(renderer, p0, p1, p2);
 			}
 		}

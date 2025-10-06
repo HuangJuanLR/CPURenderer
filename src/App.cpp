@@ -118,6 +118,9 @@ namespace CPURDR
 					m_Width = event.window.data1;
 					m_Height = event.window.data2;
 					break;
+
+				case SDL_EVENT_MOUSE_MOTION:
+					break;
 				}
 			}
 

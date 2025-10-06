@@ -124,7 +124,7 @@ void Graphics::Triangle(SDL_Renderer* renderer, glm::vec3 p0, glm::vec3 p1, glm:
 }
 
 void Graphics::Triangle(SDL_Renderer* renderer, glm::vec3 p0, glm::vec3 p1, glm::vec3 p2,
-	const int& width, const int& height, std::vector<uint8_t>& zbuffer)
+	const int& width, const int& height, CPURDR::Texture2D_RFloat& depthBuffer)
 {
 	glm::vec2 bboxMin = glm::vec2(
 		std::min(p0.x, std::min(p1.x, p2.x)),
@@ -156,12 +156,16 @@ void Graphics::Triangle(SDL_Renderer* renderer, glm::vec3 p0, glm::vec3 p1, glm:
 
 			if (pbc < 0 || pca < 0 || pab < 0) continue;
 
-			uint8_t depth = static_cast<uint8_t>(pbc * p0.z + pca * p1.z + pab * p2.z);
-			if (depth < zbuffer[x + y * width]) continue;
-			zbuffer[x + y * width] = depth;
-			SDL_SetRenderDrawColor(renderer, depth, depth, depth, 255);
-			SDL_RenderPoint(renderer, x, y);
+			float depth = static_cast<float>(pbc * p0.z + pca * p1.z + pab * p2.z);
 
+			if (depth < depthBuffer(x, y))
+			{
+				depthBuffer(x, y) = depth;
+
+				uint8_t depthColor = static_cast<uint8_t>((1.0f - depth) * 255.0f);
+				SDL_SetRenderDrawColor(renderer, depthColor, depthColor, depthColor, 255);
+				SDL_RenderPoint(renderer, x, y);
+			}
 		}
 	}
 }

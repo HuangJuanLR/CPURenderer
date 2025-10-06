@@ -2,6 +2,7 @@
   <dictionary name="project">
     <words>
       <w>cpurdr</w>
+      <w>shadowmap</w>
       <w>texcoord</w>
       <w>zbuffer</w>
     </words>

@@ -3,11 +3,11 @@
 #include <string>
 #include <vector>
 #include <assimp/scene.h>
-
 #include "vec2.hpp"
 #include "vec3.hpp"
 #include "assimp/Importer.hpp"
 #include "SDL3/SDL.h"
+#include "Texture2D.h"
 
 namespace CPURDR
 {
@@ -55,8 +55,6 @@ namespace CPURDR
 
 		std::mt19937 m_Rng;
 		std::uniform_int_distribution<int> m_Dist;
-
-		std::vector<uint8_t> m_Zbuffer;
 
 		int m_ScreenWidth;
 		int m_ScreenHeight;
