@@ -6,14 +6,18 @@ if(WIN32)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
 endif()
 
+find_package(OpenGL REQUIRED)
+
 include_directories(Dependencies/sdl3/include)
 include_directories(Dependencies/glm)
 include_directories(Dependencies/assimp/include)
 include_directories(Dependencies/plog/include)
+include_directories(Dependencies/imgui/include)
 
 add_executable(${PROJECT_NAME})
 add_subdirectory(src)
 add_subdirectory(Dependencies/plog)
+add_subdirectory(Dependencies/imgui)
 
 find_library(SDL3
         NAMES libSDL3.dll.a SDL3
@@ -35,6 +39,8 @@ target_link_libraries(${PROJECT_NAME} ${SDL3})
 target_link_libraries(${PROJECT_NAME} ${ZLIB})
 target_link_libraries(${PROJECT_NAME} ${ASSIMP})
 target_link_libraries(${PROJECT_NAME} plog::plog)
+target_link_libraries(${PROJECT_NAME} imgui)
+target_link_libraries(${PROJECT_NAME} OpenGL::GL)
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different

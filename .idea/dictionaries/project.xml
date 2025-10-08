@@ -2,6 +2,8 @@
   <dictionary name="project">
     <words>
       <w>cpurdr</w>
+      <w>imgui</w>
+      <w>plog</w>
       <w>shadowmap</w>
       <w>texcoord</w>
       <w>zbuffer</w>
