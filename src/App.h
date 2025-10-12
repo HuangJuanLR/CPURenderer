@@ -41,6 +41,9 @@ namespace CPURDR
 
 		std::unique_ptr<Model> m_CapybaraModel;
 
+		std::unique_ptr<Texture2D_RGBA> m_RenderTarget;
+		SDL_Texture* m_DisplayTexture;
+
 		static App* s_Instance;
 	};
 }

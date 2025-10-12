@@ -170,6 +170,58 @@ void Graphics::Triangle(SDL_Renderer* renderer, glm::vec3 p0, glm::vec3 p1, glm:
 	}
 }
 
+void Graphics::Triangle(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, const int& width, const int& height,
+	CPURDR::Texture2D_RFloat& depthBuffer, CPURDR::Texture2D_RGBA& colorBuffer, uint32_t color)
+{
+	glm::vec2 bboxMin = glm::vec2(
+		std::min(p0.x, std::min(p1.x, p2.x)),
+		std::min(p0.y, std::min(p1.y, p2.y))
+	);
+	glm::vec2 bboxMax = glm::vec2(
+		std::max(p0.x, std::max(p1.x, p2.x)),
+		std::max(p0.y, std::max(p1.y, p2.y))
+	);
+
+	bboxMin = glm::vec2(
+		std::max(bboxMin.x, 0.0f),
+		std::max(bboxMin.y, 0.0f)
+	);
+	bboxMax = glm::vec2(
+		std::min(bboxMax.x, (float)width - 1),
+		std::min(bboxMax.y, (float)height - 1)
+	);
+
+	double area = SignedTriangleArea(p0, p1, p2);
+	if (std::abs(area) < 0.01) return;
+
+#pragma omp parallel for
+	for (int x = bboxMin.x; x < bboxMax.x; x++)
+	{
+		for (int y = bboxMin.y; y < bboxMax.y; y++)
+		{
+			// If PCA, PBC, PAB and ABC are all clock/couter-clockwise
+			// P is inside ABC
+			glm::vec3 p = glm::vec3(x, y, 0);
+			double pbc = SignedTriangleArea(p, p1, p2) / area;
+			double pca = SignedTriangleArea(p, p2, p0) / area;
+			double pab = SignedTriangleArea(p, p0, p1) / area;
+
+			if (pbc < 0 || pca < 0 || pab < 0) continue;
+
+			float depth = static_cast<float>(pbc * p0.z + pca * p1.z + pab * p2.z);
+
+			if (depth < depthBuffer(x, y))
+			{
+				depthBuffer(x, y) = depth;
+
+				uint8_t depthColor = static_cast<uint8_t>((1.0f - depth) * 255.0f);
+				uint32_t finalColor =(depthColor << 24) | (depthColor << 16) | (depthColor << 8) | 255;
+				colorBuffer(x, y) = color;
+			}
+		}
+	}
+}
+
 double Graphics::SignedTriangleArea(const glm::vec3 p0, const glm::vec3 p1, const glm::vec3 p2)
 {
 	// clockwise -> -

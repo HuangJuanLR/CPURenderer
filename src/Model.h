@@ -49,6 +49,7 @@ namespace CPURDR
 		const std::vector<Mesh>& GetMeshes() const {return m_Meshes;}
 
 		void DrawTriangle(SDL_Renderer* renderer);
+		const Texture2D_RGBA* GetColorBuffer() const {return &m_ColorBuffer;}
 	private:
 		Assimp::Importer m_Importer;
 		std::vector<Mesh> m_Meshes;
@@ -58,5 +59,8 @@ namespace CPURDR
 
 		int m_ScreenWidth;
 		int m_ScreenHeight;
+
+		Texture2D_RFloat m_DepthBuffer;
+		Texture2D_RGBA m_ColorBuffer;
 	};
 }

@@ -12,7 +12,8 @@ namespace CPURDR
 	App* App::s_Instance = nullptr;
 
 	App::App():
-		m_Keys(SDL_GetKeyboardState(nullptr))
+		m_Keys(SDL_GetKeyboardState(nullptr)),
+		m_DisplayTexture(nullptr)
 	{
 		m_Width = 1920;
 		m_Height = 1080;
@@ -50,6 +51,8 @@ namespace CPURDR
 
 		if (success)
 			std::cout << "SDL3 Initialized" << std::endl;
+
+		m_RenderTarget = std::make_unique<Texture2D_RGBA>(m_LogicW, m_LogicH, 0xFF141414);
 
 		m_CapybaraModel = std::make_unique<Model>("resources/assets/models/capybara.fbx");
 	}
@@ -108,7 +111,7 @@ namespace CPURDR
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
-		// SDLRenderer3 doesn't support Multi-Viewport
+		// Note: ViewportsEnable is not supported with SDL_Renderer backend
 
 		// Setup Dear ImGui style
 		ImGui::StyleColorsDark();
@@ -196,6 +199,8 @@ namespace CPURDR
 				PLOG_FATAL << "This is a FATAL message";
 			}
 
+			m_RenderTarget->Clear(0xFF141414);
+
 			// draw
 			SDL_SetRenderDrawColor(m_Renderer, 20,20,20,255);
 			SDL_RenderClear(m_Renderer);
@@ -222,6 +227,13 @@ namespace CPURDR
 			SDL_RenderDebugText(m_Renderer, 5, 15, modelInfo.c_str());
 
 			m_CapybaraModel->DrawTriangle(m_Renderer);
+			const Texture2D_RGBA* colorBuffer = m_CapybaraModel->GetColorBuffer();
+
+			if (m_DisplayTexture)
+			{
+				SDL_DestroyTexture(m_DisplayTexture);
+			}
+			m_DisplayTexture = colorBuffer->CreateSDLTexture(m_Renderer);
 
 			// FPS
 			fpsAcc += deltaTime;
@@ -240,6 +252,22 @@ namespace CPURDR
 			ImGui_ImplSDLRenderer3_NewFrame();
 			ImGui_ImplSDL3_NewFrame();
 			ImGui::NewFrame();
+
+			{
+				ImGui::Begin("CPURDR Output");
+
+				if (m_DisplayTexture)
+				{
+					ImVec2 size = ImGui::GetContentRegionAvail();
+					ImGui::Image(m_DisplayTexture,
+						ImVec2((float)(m_LogicW >> 1), (float)(m_LogicH >> 1)));
+				}
+
+				ImGui::Text("Model: %zu vertices", m_CapybaraModel->GetMeshes()[0].vertices.size());
+				ImGui::Text("FPS: %.1f", fps);
+
+				ImGui::End();
+			}
 
 			if (show_demo_window)
 				ImGui::ShowDemoWindow(&show_demo_window);
@@ -290,6 +318,10 @@ namespace CPURDR
 
 	void App::CleanUp() const
 	{
+		if (m_DisplayTexture)
+		{
+			SDL_DestroyTexture(m_DisplayTexture);
+		}
 		// Cleanup ImGui
 		ImGui_ImplSDLRenderer3_Shutdown();
 		ImGui_ImplSDL3_Shutdown();

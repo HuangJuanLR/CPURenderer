@@ -5,12 +5,15 @@
 #include "Model.h"
 #include "App.h"
 #include "Graphics.h"
+#include "plog/Log.h"
 
 namespace CPURDR
 {
 	Model::Model(const std::string& file):
 		m_Rng(std::random_device{}()),
-		m_Dist(0, 255)
+		m_Dist(0, 255),
+		m_DepthBuffer(1920, 1080, 1.0f),
+		m_ColorBuffer(1920, 1080, 0xFF000000)
 	{
 		Assimp::Importer imp;
 
@@ -101,19 +104,22 @@ namespace CPURDR
 	void Model::DrawTriangle(SDL_Renderer* renderer)
 	{
 		App& app = App::GetInstance();
-		int width = app.GetWidth();
-		int height = app.GetHeight();
-
-		static Texture2D_RFloat depthBuffer(width, height, 1.0f);
+		int width = app.GetLogicWidth();
+		int height = app.GetLogicHeight();
 
 		// Resize when window changed
-		if (depthBuffer.GetWidth() != width || depthBuffer.GetHeight() != height)
+		if (m_DepthBuffer.GetWidth() != width || m_DepthBuffer.GetHeight() != height)
 		{
-			depthBuffer.Resize(width, height, 1.0f);
+			m_DepthBuffer.Resize(width, height, 1.0f);
+			m_ColorBuffer.Resize(width, height, 1.0f);
 		}
 
 		// Clear every frame
-		depthBuffer.Clear(1.0f);
+		m_DepthBuffer.Clear(1.0f);
+		m_ColorBuffer.Clear(0x141414FF);
+
+		float centerX = width / 2.0f;
+		float centerY = height / 2.0f;
 
 		for (int i = 0; i < m_Meshes.size(); i++)
 		{
@@ -132,20 +138,22 @@ namespace CPURDR
 				p1 *= glm::vec3(1, 1, 0.5);
 				p2 += glm::vec3(0, 0, 1);
 				p2 *= glm::vec3(1, 1, 0.5);
-				p0 = p0 * glm::vec3(300, 300, 255) + glm::vec3(480, 270, 0);
-				p1 = p1 * glm::vec3(300, 300, 255) + glm::vec3(480, 270, 0);
-				p2 = p2 * glm::vec3(300, 300, 255) + glm::vec3(480, 270, 0);
+				p0 = p0 * glm::vec3(500, 500, 255) + glm::vec3(centerX, centerY, 0);
+				p1 = p1 * glm::vec3(500, 500, 255) + glm::vec3(centerX, centerY, 0);
+				p2 = p2 * glm::vec3(500, 500, 255) + glm::vec3(centerX, centerY, 0);
 
 				// Normalize Z
 				p0.z /= 255.0f;
 				p1.z /= 255.0f;
 				p2.z /= 255.0f;
 
-				const SDL_Color col = (t < m_Meshes[i].colors.size())? m_Meshes[i].colors[t] : SDL_Color{255, 255, 255, 255};
-				SDL_SetRenderDrawColor(renderer, col.r, col.g, col.b, 255);
-				Graphics::Triangle(renderer, p0, p1, p2, width, height, depthBuffer);
-				// Graphics::Triangle(renderer, p0, p1, p2);
+				const SDL_Color col = (t < m_Meshes[i].colors.size())?
+					m_Meshes[i].colors[t] : SDL_Color{255, 255, 255, 255};
+				uint32_t color = (col.r << 24) | (col.g << 16) | (col.b << 8) | 255;
+				Graphics::Triangle(p0, p1, p2, width, height, m_DepthBuffer, m_ColorBuffer, color);
 			}
 		}
+
+		// m_ColorBuffer.Fill(0x70707070);
 	}
 }

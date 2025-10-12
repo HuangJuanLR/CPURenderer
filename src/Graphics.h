@@ -13,10 +13,19 @@ public:
 	static void Circle(int xc, int yc, int radius, int zoom);
 	static void Grid(SDL_Renderer* renderer, const int width, const int height, const int size);
 
+	// Triangle
 	static void Triangle(SDL_Renderer* renderer, glm::vec3 p0, glm::vec3 p1, glm::vec3 p2);
 	static void Triangle(SDL_Renderer* renderer, glm::vec3 p0, glm::vec3 p1, glm::vec3 p2,
 		const int& width, const int& height, CPURDR::Texture2D_RFloat& depthBuffer);
 
+	static void Triangle(
+		glm::vec3 p0, glm::vec3 p1, glm::vec3 p2,
+		const int& width, const int& height,
+		CPURDR::Texture2D_RFloat& depthBuffer,
+		CPURDR::Texture2D_RGBA& colorBuffer,
+		uint32_t color);
+
+	// Rasterization
 	static double SignedTriangleArea(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2);
 private:
 	static void DrawCirclePoint(int xc, int yc, int x, int y, int zoom);

@@ -6,8 +6,6 @@ if(WIN32)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
 endif()
 
-find_package(OpenGL REQUIRED)
-
 include_directories(Dependencies/sdl3/include)
 include_directories(Dependencies/glm)
 include_directories(Dependencies/assimp/include)
@@ -40,7 +38,6 @@ target_link_libraries(${PROJECT_NAME} ${ZLIB})
 target_link_libraries(${PROJECT_NAME} ${ASSIMP})
 target_link_libraries(${PROJECT_NAME} plog::plog)
 target_link_libraries(${PROJECT_NAME} imgui)
-target_link_libraries(${PROJECT_NAME} OpenGL::GL)
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
