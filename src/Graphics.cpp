@@ -210,13 +210,13 @@ void Graphics::Triangle(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, const int& wid
 
 			float depth = static_cast<float>(pbc * p0.z + pca * p1.z + pab * p2.z);
 
-			if (depth < depthBuffer(x, y))
+			if (depth > depthBuffer(x, y))
 			{
 				depthBuffer(x, y) = depth;
 
 				uint8_t depthColor = static_cast<uint8_t>((1.0f - depth) * 255.0f);
 				uint32_t finalColor =(depthColor << 24) | (depthColor << 16) | (depthColor << 8) | 255;
-				colorBuffer(x, y) = color;
+				colorBuffer(x, y) = finalColor;
 			}
 		}
 	}

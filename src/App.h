@@ -5,6 +5,7 @@
 
 #include "Model.h"
 #include "assimp/scene.h"
+#include "render/Window.h"
 
 namespace CPURDR
 {
@@ -19,6 +20,9 @@ namespace CPURDR
 		int GetHeight() const {return m_Height;}
 		int GetLogicWidth() const {return m_LogicW;}
 		int GetLogicHeight() const {return m_LogicH;}
+
+		Window* GetWindow() const {return m_RenderWindow.get();}
+		Context* GetContext() const {return m_RenderContext.get();}
 	private:
 		App();
 		~App();
@@ -28,20 +32,23 @@ namespace CPURDR
 		App& operator=(const App&) = delete;
 
 		void Update();
-		void CleanUp() const;
+		void CleanUp();
+		void InitImGui();
+		void ShutdownImGui();
+
 	public:
 		bool success = true;
 	private:
-		SDL_Window* m_Window;
-		SDL_Renderer* m_Renderer;
+		std::unique_ptr<Window> m_RenderWindow;
+		std::shared_ptr<Context> m_RenderContext;
+
 		int m_Width, m_Height;
 		int m_LogicW, m_LogicH;
-		int m_TargetFPS;
 		const bool* m_Keys;
 
 		std::unique_ptr<Model> m_CapybaraModel;
 
-		std::unique_ptr<Texture2D_RGBA> m_RenderTarget;
+		SDL_Renderer* m_ImGuiRenderer;
 		SDL_Texture* m_DisplayTexture;
 
 		static App* s_Instance;

@@ -101,6 +101,65 @@ namespace CPURDR
 	{
 	}
 
+	void Model::Draw(Context* context)
+	{
+		if (!context)
+		{
+			PLOG_ERROR << "Model::Draw() called with null context";
+			return;
+		}
+
+		int width = context->GetFramebufferWidth();
+		int height = context->GetFramebufferHeight();
+
+		Texture2D_RGBA* colorBuffer = context->GetColorBuffer();
+		Texture2D_RFloat* depthBuffer = context->GetDepthBuffer();
+
+		if (!colorBuffer || !depthBuffer)
+		{
+			PLOG_ERROR << "Model::Draw() - Context has null framebuffers";
+			return;
+		}
+
+		float centerX = width / 2.0f;
+		float centerY = height / 2.0f;
+
+		for (int i = 0; i < m_Meshes.size(); i++)
+		{
+			auto vertices = m_Meshes[i].vertices;
+			auto indices = m_Meshes[i].indices;
+
+			for (int j = 0, t = 0; j < m_Meshes[i].indices.size(); j+=3, t++)
+			{
+				glm::vec3 p0 = vertices[indices[j]].position;
+				glm::vec3 p1 = vertices[indices[j + 1]].position;
+				glm::vec3 p2 = vertices[indices[j + 2]].position;
+
+				// Capybara model's z is -1 ~ 1 in Houdini
+				p0 += glm::vec3(0, 0, 1);
+				p0 *= glm::vec3(1, 1, 0.5);
+				p1 += glm::vec3(0, 0, 1);
+				p1 *= glm::vec3(1, 1, 0.5);
+				p2 += glm::vec3(0, 0, 1);
+				p2 *= glm::vec3(1, 1, 0.5);
+				p0 = p0 * glm::vec3(500, 500, 255) + glm::vec3(centerX, centerY, 0);
+				p1 = p1 * glm::vec3(500, 500, 255) + glm::vec3(centerX, centerY, 0);
+				p2 = p2 * glm::vec3(500, 500, 255) + glm::vec3(centerX, centerY, 0);
+
+				// Normalize Z
+				p0.z /= 255.0f;
+				p1.z /= 255.0f;
+				p2.z /= 255.0f;
+
+				const SDL_Color col = (t < m_Meshes[i].colors.size())? m_Meshes[i].colors[t] : SDL_Color{255, 255, 255, 255};
+				uint32_t color = (col.r << 24) | (col.g << 16) | (col.b << 8) | 255;
+
+				Graphics::Triangle(p0, p1, p2, width, height, *depthBuffer, *colorBuffer, color);
+			}
+		}
+	}
+
+
 	void Model::DrawTriangle(SDL_Renderer* renderer)
 	{
 		App& app = App::GetInstance();

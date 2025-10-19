@@ -8,6 +8,7 @@
 #include "assimp/Importer.hpp"
 #include "SDL3/SDL.h"
 #include "Texture2D.h"
+#include "render/Context.h"
 
 namespace CPURDR
 {
@@ -48,6 +49,9 @@ namespace CPURDR
 
 		const std::vector<Mesh>& GetMeshes() const {return m_Meshes;}
 
+		void Draw(Context* context);
+
+		// Legacy
 		void DrawTriangle(SDL_Renderer* renderer);
 		const Texture2D_RGBA* GetColorBuffer() const {return &m_ColorBuffer;}
 	private:
@@ -57,9 +61,9 @@ namespace CPURDR
 		std::mt19937 m_Rng;
 		std::uniform_int_distribution<int> m_Dist;
 
+		// Legacy
 		int m_ScreenWidth;
 		int m_ScreenHeight;
-
 		Texture2D_RFloat m_DepthBuffer;
 		Texture2D_RGBA m_ColorBuffer;
 	};
