@@ -31,7 +31,7 @@ namespace CPURDR
 		m_FramebufferHeight = height;
 
 		m_Framebuffer.colorBuffer = std::make_shared<Texture2D_RGBA>(width, height, 0x000000FF);
-		m_Framebuffer.depthBuffer = std::make_shared<Texture2D_RFloat>(width, height, 1.0f);
+		m_Framebuffer.depthBuffer = std::make_shared<Texture2D_RFloat>(width, height, 0.0f);
 	}
 
 	void Context::ResizeFramebuffer(int width, int height)

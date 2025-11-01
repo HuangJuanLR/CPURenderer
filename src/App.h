@@ -47,6 +47,7 @@ namespace CPURDR
 		const bool* m_Keys;
 
 		std::unique_ptr<Model> m_CapybaraModel;
+		std::unique_ptr<Camera> m_Camera;
 
 		SDL_Renderer* m_ImGuiRenderer;
 		SDL_Texture* m_DisplayTexture;

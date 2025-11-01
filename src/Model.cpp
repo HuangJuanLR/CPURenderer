@@ -2,6 +2,8 @@
 #include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
 #include "SDL3/SDL_messagebox.h"
+#include "ext/matrix_transform.hpp"
+
 #include "Model.h"
 #include "App.h"
 #include "Graphics.h"
@@ -43,7 +45,7 @@ namespace CPURDR
 
 			glm::mat4 matRot = glm::mat4(
 				1.0f, 0.0f, 0.0f, 0.0f,
-				0.0f, -1.0f, 0.0f, 0.0f,
+				0.0f, 1.0f, 0.0f, 0.0f,
 				0.0f, 0.0f, -1.0f, 0.0f,
 				0.0f, 0.0f, 0.0f, 1.0f
 				);
@@ -159,6 +161,100 @@ namespace CPURDR
 		}
 	}
 
+	void Model::Draw(Context* context, const Camera& camera)
+	{
+		if (!context)
+		{
+			PLOG_ERROR << "Model::Draw() called with null context";
+			return;
+		}
+
+		int width = context->GetFramebufferWidth();
+		int height = context->GetFramebufferHeight();
+		float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
+
+		Texture2D_RGBA* colorBuffer = context->GetColorBuffer();
+		Texture2D_RFloat* depthBuffer = context->GetDepthBuffer();
+
+		if (!colorBuffer || !depthBuffer)
+		{
+			PLOG_ERROR << "Model::Draw() - Context has null framebuffers";
+			return;
+		}
+
+		glm::mat4 modelMatrix = glm::mat4(
+			1.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, 1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 1.0f, 0.0f,
+			0.0f, 0.0f, 0.0f, 1.0f
+		);
+
+		float time = SDL_GetTicks() / 1000.0f;
+		float rotationSpeed = 45.0f;
+		float rotationAngle = time * rotationSpeed;
+		modelMatrix = glm::rotate(modelMatrix, glm::radians(rotationAngle), glm::vec3(0.0f, 1.0f, 0.0f));
+
+		glm::mat4 viewMatrix = camera.GetViewMatrix();
+		glm::mat4 projectionMatrix = camera.GetProjectionMatrix(aspectRatio);
+		glm::mat4 mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
+
+		for (int meshIdx = 0; meshIdx < m_Meshes.size(); meshIdx++)
+		{
+			const auto& mesh = m_Meshes[meshIdx];
+			const auto& vertices = mesh.vertices;
+			const auto& indices = mesh.indices;
+
+			for (int j = 0, t = 0; j < indices.size(); j += 3, t++)
+			{
+				glm::vec3 p0 = vertices[indices[j]].position;
+				glm::vec3 p1 = vertices[indices[j + 1]].position;
+				glm::vec3 p2 = vertices[indices[j + 2]].position;
+
+				// Transform vertices to CS
+				glm::vec4 clip0 = mvpMatrix * glm::vec4(p0, 1.0f);
+				glm::vec4 clip1 = mvpMatrix * glm::vec4(p1, 1.0f);
+				glm::vec4 clip2 = mvpMatrix * glm::vec4(p2, 1.0f);
+
+				if (clip0.w != 0.0f) clip0 /= clip0.w;
+				if (clip1.w != 0.0f) clip1 /= clip1.w;
+				if (clip2.w != 0.0f) clip2 /= clip2.w;
+
+				// Frustum culling
+				if (clip0.x < -1.0f || clip0.x > 1.0f || clip0.y < -1.0f || clip0.y > 1.0f ||
+					clip1.x < -1.0f || clip1.x > 1.0f || clip1.y < -1.0f || clip1.y > 1.0f ||
+					clip2.x < -1.0f || clip2.x > 1.0f || clip2.y < -1.0f || clip2.y > 1.0f)
+				{
+					continue;
+				}
+
+				// Depth Culling
+				if (clip0.z < -1.0f || clip0.z > 1.0f ||
+					clip1.z < -1.0f || clip1.z > 1.0f ||
+					clip2.z < -1.0f || clip2.z > 1.0f)
+				{
+					continue;
+				}
+
+				// NDC to ScreenSpace -1~1 to 0~width
+				glm::vec3 screen0, screen1, screen2;
+				screen0.x = (clip0.x + 1.0f) * 0.5f * width;
+				screen1.x = (clip1.x + 1.0f) * 0.5f * width;
+				screen2.x = (clip2.x + 1.0f) * 0.5f * width;
+				screen0.y = (clip0.y + 1.0f) * 0.5f * height;
+				screen1.y = (clip1.y + 1.0f) * 0.5f * height;
+				screen2.y = (clip2.y + 1.0f) * 0.5f * height;
+				screen0.z = (clip0.z + 1.0f) * 0.5f;
+				screen1.z = (clip1.z + 1.0f) * 0.5f;
+				screen2.z = (clip2.z + 1.0f) * 0.5f;
+
+				const SDL_Color col = (t < mesh.colors.size())? mesh.colors[t] : SDL_Color{255, 255, 255, 255};
+				uint32_t color = (col.r << 24) | (col.g << 16) | (col.b << 8) | 255;
+				Graphics::Triangle(screen0, screen1, screen2, width, height, *depthBuffer, *colorBuffer, color);
+
+			}
+		}
+
+	}
 
 	void Model::DrawTriangle(SDL_Renderer* renderer)
 	{

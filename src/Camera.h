@@ -4,6 +4,23 @@
 
 namespace CPURDR
 {
+	// Vulkan specifications
+	// ===============
+	// NDC
+	// ===============
+	// X: -1.0 ~ 1.0(left to right)
+	// Y: -1.0 ~ 1.0(top to bottom)
+	// Z: 0.0 ~ 1.0(near to far)
+
+	// ===============
+	// Framebuffer Coord
+	// ===============
+	// Origin at top-left, Y-Down
+
+	// ===============
+	// Front-face Winding
+	// ===============
+	// Default is counter-clockwise, can be configured via VKPipelineRasterizationStateCreateInfo
 	class Camera
 	{
 	public:
@@ -41,7 +58,7 @@ namespace CPURDR
 
 		glm::vec3 WorldToScreen(const glm::vec3& worldPos, int screenWidth, int screenHeight, float aspectRatio) const;
 		glm::vec3 ScreenToWorld(const glm::vec3& screenPos, int screenWidth, int screenHeight, float aspectRatio) const;
-		bool IsPointInFrustum(const glm::vec3& point) const;
+		bool IsPointInFrustum(const glm::vec3& point, const float aspectRatio) const;
 
 	private:
 		void UpdateCameraVectors();
@@ -62,7 +79,7 @@ namespace CPURDR
 		float m_FOV;
 
 		float m_Near{0.1f};
-		float m_Far{200.0f};
+		float m_Far{10.0f};
 
 		static constexpr float DEFAULT_YAW = -90.0f;
 		static constexpr float DEFAULT_PITCH = 0.0f;
@@ -70,6 +87,6 @@ namespace CPURDR
 		static constexpr float DEFAULT_SENSITIVITY = 0.1f;
 		static constexpr float DEFAULT_FOV = 45.0f;
 		static constexpr float DEFAULT_NEAR = 0.1f;
-		static constexpr float DEFAULT_FAR = 100.0f;
+		static constexpr float DEFAULT_FAR = 10.0f;
 	};
 }

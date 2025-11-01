@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 #include <assimp/scene.h>
+
+#include "Camera.h"
 #include "vec2.hpp"
 #include "vec3.hpp"
 #include "assimp/Importer.hpp"
@@ -50,6 +52,7 @@ namespace CPURDR
 		const std::vector<Mesh>& GetMeshes() const {return m_Meshes;}
 
 		void Draw(Context* context);
+		void Draw(Context* context, const Camera& camera);
 
 		// Legacy
 		void DrawTriangle(SDL_Renderer* renderer);

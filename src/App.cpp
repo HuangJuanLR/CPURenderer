@@ -18,10 +18,10 @@ namespace CPURDR
 		m_ImGuiRenderer(nullptr),
 		m_DisplayTexture(nullptr)
 	{
-		m_Width = 1920;
-		m_Height = 1080;
-		m_LogicW = 1920;
-		m_LogicH = 1080;
+		m_Width = 2560;
+		m_Height = 1440;
+		m_LogicW = 2560;
+		m_LogicH = 1440;
 
 		if (!SDL_Init(SDL_INIT_VIDEO))
 		{
@@ -32,8 +32,8 @@ namespace CPURDR
 
 		WindowParams windowParams;
 		windowParams.title = "CPURenderer";
-		windowParams.width = 1920;
-		windowParams.height = 1080;
+		windowParams.width = 2560;
+		windowParams.height = 1440;
 		windowParams.vsync = false;
 		windowParams.resizable = true;
 
@@ -56,7 +56,17 @@ namespace CPURDR
 		if (success)
 			PLOG_INFO << "SDL3 Initialized" << std::endl;
 
-		m_CapybaraModel = std::make_unique<Model>("resources/assets/models/capybara.fbx");
+		m_CapybaraModel = std::make_unique<Model>("resources/assets/models/cube.obj");
+
+		m_Camera = std::make_unique<Camera>(
+			glm::vec3(1.5f, 1.5f, 2.0f),
+			glm::vec3(0.0f, 1.0f, 0.0f),
+			0.0f,
+			0.0f
+			);
+		m_Camera->LookAt(glm::vec3(0,0,0));
+		m_Camera->SetFOV(60.0f);
+		m_Camera->SetClipPlanes(0.01f, 5.0f);
 
 		InitImGui();
 	}
@@ -165,7 +175,7 @@ namespace CPURDR
 
 			ClearValue clearValue;
 			clearValue.color = 0x141414FF;
-			clearValue.depth = 1.0f;
+			clearValue.depth = 0.0f;
 			m_RenderContext->BeginRenderPass(clearValue);
 
 			Viewport viewport;
@@ -175,7 +185,7 @@ namespace CPURDR
 			viewport.height = m_RenderContext->GetFramebufferHeight();
 			m_RenderContext->SetViewport(viewport);
 
-			m_CapybaraModel->Draw(m_RenderContext.get());
+			m_CapybaraModel->Draw(m_RenderContext.get(), *m_Camera);
 
 			m_RenderContext->EndRenderPass();
 
