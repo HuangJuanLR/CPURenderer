@@ -1,10 +1,12 @@
 #include "Camera.h"
 
 #include <algorithm>
+#include <format>
 
 #include "glm.hpp"
 #include "ext/matrix_transform.hpp"
 #include "ext/matrix_clip_space.hpp"
+#include "Log.h"
 
 namespace CPURDR
 {
@@ -84,7 +86,7 @@ namespace CPURDR
 
 		// row-major format so I can viz if better
 		// f / aspect, 0.0f, 0.0f,                      0.0f,
-		// 0.0f,       -f,    0.0f,                      0.0f,
+		// 0.0f,       -f,   0.0f,                      0.0f,
 		// 0.0f,       0.0f, m_Far / (m_Near - m_Far),  (m_Far * m_Near) / (m_Near - m_Far),
 		// 0.0f,       0.0f, -1.0,                      0.0f
 
@@ -231,6 +233,48 @@ namespace CPURDR
 			m_Up = glm::vec3(rollMatrix * glm::vec4(m_Up, 0.0f));
 			m_Right = glm::normalize(glm::cross(m_Front, m_Up));
 		}
+	}
+
+	void Camera::ProcessKeyboard(float deltaTime, bool forward, bool backward, bool left, bool right, bool sprint)
+	{
+		float velocity = m_MovementSpeed * deltaTime;
+		if (sprint)
+		{
+			velocity *= 2.5f;
+		}
+
+		if (forward)
+		{
+			m_Position += m_Front * velocity;
+		}
+		if (backward)
+		{
+			m_Position -= m_Front * velocity;
+		}
+		if (left)
+		{
+			m_Position -= m_Right * velocity;
+		}
+		if (right)
+		{
+			m_Position += m_Right * velocity;
+		}
+	}
+
+	void Camera::ProcessMouseMovement(float xoffset, float yoffset, bool constrainPitch)
+	{
+		xoffset *= m_MouseSensitivity;
+		yoffset *= m_MouseSensitivity;
+
+		m_Yaw += xoffset;
+		m_Pitch += yoffset;
+
+		if (constrainPitch)
+		{
+			m_Pitch = std::clamp(m_Pitch, -89.0f, 89.0f);
+		}
+
+		UpdateCameraVectors();
 	}
 
 }

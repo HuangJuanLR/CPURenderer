@@ -60,6 +60,13 @@ namespace CPURDR
 		glm::vec3 ScreenToWorld(const glm::vec3& screenPos, int screenWidth, int screenHeight, float aspectRatio) const;
 		bool IsPointInFrustum(const glm::vec3& point, const float aspectRatio) const;
 
+		void ProcessKeyboard(float deltaTime, bool forward, bool backward, bool left, bool right, bool sprint = false);
+		void ProcessMouseMovement(float xoffset, float yoffset, bool constrainPitch = true);
+		void SetMovementSpeed(float speed){m_MovementSpeed = speed;}
+		void SetMouseSensitivity(float sensitivity){m_MouseSensitivity = sensitivity;}
+		float GetMovementSpeed() const {return m_MovementSpeed;}
+		float GetMouseSensitivity() const {return m_MouseSensitivity;}
+
 	private:
 		void UpdateCameraVectors();
 	private:

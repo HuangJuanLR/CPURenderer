@@ -129,7 +129,10 @@ namespace CPURDR
 			SDL_Event event{0};
 			while (SDL_PollEvent(&event))
 			{
-				ImGui_ImplSDL3_ProcessEvent(&event);
+				if (!m_MouseCaptured)
+				{
+					ImGui_ImplSDL3_ProcessEvent(&event);
+				}
 
 				switch (event.type)
 				{
@@ -142,36 +145,47 @@ namespace CPURDR
 						break;
 
 					case SDL_EVENT_MOUSE_MOTION:
+						if (m_MouseCaptured)
+						{
+							float xOffset = static_cast<float>(event.motion.xrel);
+							float yOffset = static_cast<float>(event.motion.yrel);
+
+							m_Camera->ProcessMouseMovement(xOffset, -yOffset);
+						}
+						break;
+
+					case SDL_EVENT_MOUSE_BUTTON_DOWN:
+						if (event.button.button == SDL_BUTTON_RIGHT)
+						{
+							m_MouseCaptured = true;
+							SDL_SetWindowRelativeMouseMode(m_RenderWindow->GetSDLWindow(), true);
+						}
+						break;
+
+					case SDL_EVENT_MOUSE_BUTTON_UP:
+						if (event.button.button == SDL_BUTTON_RIGHT)
+						{
+							m_MouseCaptured = false;
+							SDL_SetWindowRelativeMouseMode(m_RenderWindow->GetSDLWindow(), false);
+						}
 						break;
 				}
 			}
 
-			if (m_Keys[SDL_SCANCODE_W])
-			{
-				lineY-=10;
-			}
-			if (m_Keys[SDL_SCANCODE_A])
-			{
-				lineX-=10;
-			}
-			if (m_Keys[SDL_SCANCODE_S])
-			{
-				lineY+=10;
-			}
-			if (m_Keys[SDL_SCANCODE_D])
-			{
-				lineX+=10;
-			}
+			bool moveForward = m_Keys[SDL_SCANCODE_W];
+			bool moveBackward = m_Keys[SDL_SCANCODE_S];
+			bool moveLeft = m_Keys[SDL_SCANCODE_A];
+			bool moveRight = m_Keys[SDL_SCANCODE_D];
+			bool sprint = m_Keys[SDL_SCANCODE_LSHIFT];
 
-			if (m_Keys[SDL_SCANCODE_SPACE])
-			{
-				PLOG_VERBOSE << "This is a VERBOSE message";
-				PLOG_DEBUG << "This is a DEBUG message";
-				PLOG_INFO << "This is an INFO message";
-				PLOG_WARNING << "This is a WARNING message";
-				PLOG_ERROR << "This is an ERROR message";
-				PLOG_FATAL << "This is a FATAL message";
-			}
+			ImGuiIO& io = ImGui::GetIO();
+			// if (!io.WantCaptureMouse && !io.WantCaptureKeyboard)
+			// {
+				m_Camera->ProcessKeyboard(static_cast<float>(deltaTime),
+										  moveForward, moveBackward,
+										  moveLeft, moveRight,
+										  sprint);
+			// }
 
 			ClearValue clearValue;
 			clearValue.color = 0x141414FF;
@@ -300,7 +314,7 @@ namespace CPURDR
 
 			// Rendering
 			ImGui::Render();
-			ImGuiIO& io = ImGui::GetIO();
+			// ImGuiIO& io = ImGui::GetIO();
 			SDL_SetRenderScale(m_ImGuiRenderer, io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
 			SDL_SetRenderDrawColorFloat(m_ImGuiRenderer, clear_color.x, clear_color.y, clear_color.z, clear_color.w);
 			SDL_RenderClear(m_ImGuiRenderer);
