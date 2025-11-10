@@ -21,8 +21,8 @@ namespace CPURDR
 
 		const aiScene* pScene = imp.ReadFile(file.c_str(),
 			aiProcess_Triangulate |
-			aiProcess_FlipUVs |
-			aiProcess_ConvertToLeftHanded |
+			// aiProcess_FlipUVs |
+			// aiProcess_ConvertToLeftHanded |
 			aiProcess_GenNormals);
 
 		if (pScene == nullptr)
@@ -43,21 +43,13 @@ namespace CPURDR
 			std::vector<unsigned int> indices;
 			glm::vec3 vector;
 
-			glm::mat4 matRot = glm::mat4(
-				1.0f, 0.0f, 0.0f, 0.0f,
-				0.0f, 1.0f, 0.0f, 0.0f,
-				0.0f, 0.0f, -1.0f, 0.0f,
-				0.0f, 0.0f, 0.0f, 1.0f
-				);
-
 			for (unsigned int j = 0; j < mesh->mNumVertices; j++)
 			{
 				Vertex vertex;
 				vector.x = mesh->mVertices[j].x;
 				vector.y = mesh->mVertices[j].y;
 				vector.z = mesh->mVertices[j].z;
-				glm::vec4 transformedPos = matRot * glm::vec4(vector, 1.0f);
-				vertex.position = glm::vec3(transformedPos);
+				vertex.position = glm::vec3(vector);
 
 				if (mesh->HasNormals())
 				{
@@ -215,6 +207,9 @@ namespace CPURDR
 				glm::vec4 clip1 = mvpMatrix * glm::vec4(p1, 1.0f);
 				glm::vec4 clip2 = mvpMatrix * glm::vec4(p2, 1.0f);
 
+				glm::vec4 world0 = modelMatrix * glm::vec4(p0, 1.0f);
+				glm::vec4 view0 = viewMatrix * world0;
+
 				if (clip0.w != 0.0f) clip0 /= clip0.w;
 				if (clip1.w != 0.0f) clip1 /= clip1.w;
 				if (clip2.w != 0.0f) clip2 /= clip2.w;
@@ -228,9 +223,9 @@ namespace CPURDR
 				}
 
 				// Depth Culling
-				if (clip0.z < -1.0f || clip0.z > 1.0f ||
-					clip1.z < -1.0f || clip1.z > 1.0f ||
-					clip2.z < -1.0f || clip2.z > 1.0f)
+				if (clip0.z < 0.0f || clip0.z > 1.0f ||
+					clip1.z < 0.0f || clip1.z > 1.0f ||
+					clip2.z < 0.0f || clip2.z > 1.0f)
 				{
 					continue;
 				}
@@ -243,9 +238,20 @@ namespace CPURDR
 				screen0.y = (clip0.y + 1.0f) * 0.5f * height;
 				screen1.y = (clip1.y + 1.0f) * 0.5f * height;
 				screen2.y = (clip2.y + 1.0f) * 0.5f * height;
-				screen0.z = (clip0.z + 1.0f) * 0.5f;
-				screen1.z = (clip1.z + 1.0f) * 0.5f;
-				screen2.z = (clip2.z + 1.0f) * 0.5f;
+
+				// ============================
+				// Standard-Z
+				// ============================
+				screen0.z = clip0.z;
+				screen1.z = clip1.z;
+				screen2.z = clip2.z;
+
+				// ============================
+				// Reversed-Z
+				// ============================
+				// screen0.z = (1.0f - clip0.z);
+				// screen1.z = (1.0f - clip1.z);
+				// screen2.z = (1.0f - clip2.z);
 
 				const SDL_Color col = (t < mesh.colors.size())? mesh.colors[t] : SDL_Color{255, 255, 255, 255};
 				uint32_t color = (col.r << 24) | (col.g << 16) | (col.b << 8) | 255;
@@ -270,7 +276,17 @@ namespace CPURDR
 		}
 
 		// Clear every frame
-		m_DepthBuffer.Clear(1.0f);
+
+		// ============================
+		// Standard-Z
+		// ============================
+		m_DepthBuffer.Clear(0.0f);
+
+		// ============================
+		// Reversed-Z
+		// ============================
+		// m_DepthBuffer.Clear(1.0f);
+
 		m_ColorBuffer.Clear(0x141414FF);
 
 		float centerX = width / 2.0f;

@@ -95,7 +95,7 @@ namespace CPURDR
 	{
 		if (m_Framebuffer.colorBuffer)
 		{
-			m_Framebuffer.colorBuffer->Clear();
+			m_Framebuffer.colorBuffer->Clear(color);
 		}
 	}
 
@@ -104,7 +104,7 @@ namespace CPURDR
 	{
 		if (m_Framebuffer.depthBuffer)
 		{
-			m_Framebuffer.depthBuffer->Clear();
+			m_Framebuffer.depthBuffer->Clear(depth);
 		}
 	}
 

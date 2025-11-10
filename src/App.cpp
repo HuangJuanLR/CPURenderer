@@ -56,17 +56,17 @@ namespace CPURDR
 		if (success)
 			PLOG_INFO << "SDL3 Initialized" << std::endl;
 
-		m_CapybaraModel = std::make_unique<Model>("resources/assets/models/cube.obj");
+		m_CapybaraModel = std::make_unique<Model>("resources/assets/models/utah_teapot.obj");
 
 		m_Camera = std::make_unique<Camera>(
-			glm::vec3(1.5f, 1.5f, 2.0f),
+			glm::vec3(1.5f, 1.5f, 1.5f),
 			glm::vec3(0.0f, 1.0f, 0.0f),
 			0.0f,
 			0.0f
 			);
 		m_Camera->LookAt(glm::vec3(0,0,0));
 		m_Camera->SetFOV(60.0f);
-		m_Camera->SetClipPlanes(0.01f, 5.0f);
+		m_Camera->SetClipPlanes(0.2f, 4.0f);
 
 		InitImGui();
 	}
@@ -175,7 +175,14 @@ namespace CPURDR
 
 			ClearValue clearValue;
 			clearValue.color = 0x141414FF;
-			clearValue.depth = 0.0f;
+			// ============================
+			// Standard-Z
+			// ============================
+			clearValue.depth = 1.0f;
+			// ============================
+			// Reversed-Z
+			// ============================
+			// clearValue.depth = 0.0f;
 			m_RenderContext->BeginRenderPass(clearValue);
 
 			Viewport viewport;

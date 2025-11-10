@@ -194,6 +194,8 @@ void Graphics::Triangle(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, const int& wid
 	double area = SignedTriangleArea(p0, p1, p2);
 	if (std::abs(area) < 0.01) return;
 
+	// if (area > 0.0) return; // Backface culling
+
 #pragma omp parallel for
 	for (int x = bboxMin.x; x < bboxMax.x; x++)
 	{
@@ -210,7 +212,10 @@ void Graphics::Triangle(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, const int& wid
 
 			float depth = static_cast<float>(pbc * p0.z + pca * p1.z + pab * p2.z);
 
-			if (depth > depthBuffer(x, y))
+			// ============================
+			// Standard-Z
+			// ============================
+			if (depth < depthBuffer(x, y))
 			{
 				depthBuffer(x, y) = depth;
 
@@ -218,6 +223,18 @@ void Graphics::Triangle(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, const int& wid
 				uint32_t finalColor = (depthColor << 24) | (depthColor << 16) | (depthColor << 8) | 255;
 				colorBuffer(x, y) = color;
 			}
+
+			// ============================
+			// Reversed-Z
+			// ============================
+			// if (depth > depthBuffer(x, y))
+			// {
+			// 	depthBuffer(x, y) = depth;
+			//
+			// 	uint8_t depthColor = static_cast<uint8_t>(depth * 255.0f);
+			// 	uint32_t finalColor = (depthColor << 24) | (depthColor << 16) | (depthColor << 8) | 255;
+			// 	colorBuffer(x, y) = color;
+			// }
 		}
 	}
 }

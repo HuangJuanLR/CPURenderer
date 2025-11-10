@@ -26,13 +26,68 @@ namespace CPURDR
 	glm::mat4 Camera::GetViewMatrix() const
 	{
 		// R-Hand match OpenGL
-		return glm::lookAt(m_Position, m_Position + m_Front, m_Up);
+		// return glm::lookAt(m_Position, m_Position + m_Front, m_Up);
+
+		// ===================================
+		// construct manually
+		// ===================================
+		glm::vec3 f = glm::normalize(m_Front);
+		glm::vec3 r = glm::normalize(m_Right);
+		glm::vec3 u = glm::normalize(m_Up);
+
+		// Camera looks down the -Z-axis(OpenGL convention)
+		glm::mat4 view = glm::mat4(
+			r.x, u.x, -f.x, 0.0f,
+			r.y, u.y, -f.y, 0.0f,
+			r.z, u.z, -f.z, 0.0f,
+			-glm::dot(r, m_Position), -glm::dot(u, m_Position), glm::dot(f, m_Position), 1.0f
+			);
+
+		return view;
 	}
 
 	glm::mat4 Camera::GetProjectionMatrix(float aspect) const
 	{
-		glm::mat4 projection = glm::perspective(glm::radians(m_FOV), aspect, m_Near, m_Far);
-		projection[1][1] *= -1.0f; // Y-Down
+		// glm::mat4 projection = glm::perspective(glm::radians(m_FOV), aspect, m_Near, m_Far);
+		// projection[1][1] *= 1.0f;
+		// projection[2][3] *= -1.0f;
+		// return projection;
+
+		// aspect = width / height
+		float f = 1.0f / tan(glm::radians(m_FOV) * 0.5f);
+
+		// ================================
+		// OpenGL Convention
+		// ================================
+		// glm::mat4 projection = glm::mat4(
+		// 	f / aspect, 0.0f, 0.0f, 0.0f,
+		// 	0.0f, f, 0.0f, 0.0f,
+		// 	0.0f, 0.0f, -(m_Far + m_Near) / (m_Far - m_Near), 1.0f,
+		// 	0.0f, 0.0f, -2.0 * (m_Far * m_Near) / (m_Far - m_Near), 0.0f
+		// 	);
+
+		// row-major format so I can viz if better
+		// f / aspect, 0.0f, 0.0f,                                 0.0f,
+		// 0.0f,       f,    0.0f,                                 0.0f,
+		// 0.0f,       0.0f, -(m_Far + m_Near) / (m_Far - m_Near), -2.0 * (m_Far * m_Near) / (m_Far - m_Near),
+		// 0.0f,       0.0f, 1.0,                                  0.0f
+
+		// ================================
+		// Vulkan Convention
+		// ================================
+		glm::mat4 projection = glm::mat4(
+			f / aspect, 0.0f, 0.0f, 0.0f,
+			0.0f, -f, 0.0f, 0.0f,
+			0.0f, 0.0f, m_Far / (m_Near - m_Far), -1.0f,
+			0.0f, 0.0f, (m_Far * m_Near) / (m_Near - m_Far), 0.0f
+			);
+
+		// row-major format so I can viz if better
+		// f / aspect, 0.0f, 0.0f,                      0.0f,
+		// 0.0f,       -f,    0.0f,                      0.0f,
+		// 0.0f,       0.0f, m_Far / (m_Near - m_Far),  (m_Far * m_Near) / (m_Near - m_Far),
+		// 0.0f,       0.0f, -1.0,                      0.0f
+
 		return projection;
 	}
 
