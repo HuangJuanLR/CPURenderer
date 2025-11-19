@@ -8,6 +8,9 @@
 #include "imgui_internal.h"
 #include "Log.h"
 #include "render/Context.h"
+#include "entt.hpp"
+#include "Scene.h"
+#include "render/RenderingSystem.h"
 
 namespace CPURDR
 {
@@ -56,7 +59,11 @@ namespace CPURDR
 		if (success)
 			PLOG_INFO << "SDL3 Initialized" << std::endl;
 
-		m_CapybaraModel = std::make_unique<Model>("resources/assets/models/utah_teapot.obj");
+		// Give ECS a try
+		m_Scene = SceneManager::GetInstance().CreateScene("Main Scene");
+		m_RenderingSystem = std::make_unique<RenderingSystem>();
+
+		entt::entity teapotEntity = m_Scene->CreateMeshEntity("Teapot", "resources/assets/models/utah_teapot.obj");
 
 		m_Camera = std::make_unique<Camera>(
 			glm::vec3(1.5f, 1.5f, 1.5f),
@@ -206,7 +213,7 @@ namespace CPURDR
 			viewport.height = m_RenderContext->GetFramebufferHeight();
 			m_RenderContext->SetViewport(viewport);
 
-			m_CapybaraModel->Draw(m_RenderContext.get(), *m_Camera);
+			m_RenderingSystem->Render(m_Scene->GetRegistry(), m_RenderContext.get(), *m_Camera);
 
 			m_RenderContext->EndRenderPass();
 
@@ -261,9 +268,21 @@ namespace CPURDR
 					ImGui::Image(m_DisplayTexture, ImVec2(displayWidth, displayHeight));
 				}
 
+				auto view = m_Scene->View<MeshFilter>();
+				size_t totalVertices = 0;
+				for (auto entity: view)
+				{
+					const MeshFilter& meshFilter = view.get<MeshFilter>(entity);
+					for (const auto& mesh: meshFilter.meshes)
+					{
+						totalVertices += mesh.vertices.size();
+					}
+				}
+
 				ImGui::Separator();
 				ImGui::Text("Render Stats: ");
-				ImGui::Text(" Model: %zu vertices", m_CapybaraModel->GetMeshes()[0].vertices.size());
+				ImGui::Text("Scene: %zu entities", m_Scene->GetEntityCount());
+				ImGui::Text("Triangles: %zu", totalVertices);
 				ImGui::Text(" FPS: %.1f", fps);
 				ImGui::Text(" Framebuffer: %dx%d",
 					m_RenderContext->GetFramebufferWidth(),

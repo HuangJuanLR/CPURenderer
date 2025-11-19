@@ -11,6 +11,7 @@ include_directories(Dependencies/glm)
 include_directories(Dependencies/assimp/include)
 include_directories(Dependencies/plog/include)
 include_directories(Dependencies/imgui/include)
+include_directories(Dependencies/entt/include)
 
 add_executable(${PROJECT_NAME})
 add_subdirectory(src)

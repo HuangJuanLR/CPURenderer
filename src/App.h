@@ -9,6 +9,9 @@
 
 namespace CPURDR
 {
+	class Scene;
+	class RenderingSystem;
+
 	class App
 	{
 	public:
@@ -39,14 +42,15 @@ namespace CPURDR
 	public:
 		bool success = true;
 	private:
+		std::shared_ptr<Scene> m_Scene;
+		std::unique_ptr<RenderingSystem> m_RenderingSystem;
+
 		std::unique_ptr<Window> m_RenderWindow;
 		std::shared_ptr<Context> m_RenderContext;
 
 		int m_Width, m_Height;
 		int m_LogicW, m_LogicH;
 		const bool* m_Keys;
-
-		std::unique_ptr<Model> m_CapybaraModel;
 
 		std::unique_ptr<Camera> m_Camera;
 		bool m_MouseCaptured = false;
