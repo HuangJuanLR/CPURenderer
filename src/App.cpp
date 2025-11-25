@@ -10,7 +10,10 @@
 #include "render/Context.h"
 #include "entt.hpp"
 #include "Scene.h"
-#include "render/RenderingSystem.h"
+#include "ecs/components/Hierarchy.h"
+#include "ecs/components/NameTag.h"
+#include "ecs/systems/RenderingSystem.h"
+#include "ecs/systems/TransformSystem.h"
 
 namespace CPURDR
 {
@@ -62,8 +65,21 @@ namespace CPURDR
 		// Give ECS a try
 		m_Scene = SceneManager::GetInstance().CreateScene("Main Scene");
 		m_RenderingSystem = std::make_unique<RenderingSystem>();
+		m_TransformSystem = std::make_unique<TransformSystem>();
 
-		entt::entity teapotEntity = m_Scene->CreateMeshEntity("Teapot", "resources/assets/models/utah_teapot.obj");
+		// entt::entity teapotEntity = m_Scene->CreateMeshEntity("Teapot", "resources/assets/models/utah_teapot.obj");
+
+		entt::entity parentEntity = m_Scene->CreateEntity("Parent");
+		auto& parentTransform = m_Scene->GetRegistry().get<Transform>(parentEntity);
+		parentTransform.position = glm::vec3(0.0f, -0.5f, 0.0f);
+		parentTransform.scale = glm::vec3(2.0f, 2.0f, 2.0f);
+
+		entt::entity childEntity = m_Scene->CreateMeshEntity("Child", "resources/assets/models/utah_teapot.obj");
+		auto& childTransform = m_Scene->GetRegistry().get<Transform>(childEntity);
+		childTransform.position = glm::vec3(0.0f, 0.0f, 0.0f);
+		childTransform.scale = glm::vec3(0.5f, 0.5f, 0.5f);
+
+		m_Scene->SetParent(childEntity, parentEntity);
 
 		m_Camera = std::make_unique<Camera>(
 			glm::vec3(1.5f, 1.5f, 1.5f),
@@ -194,6 +210,8 @@ namespace CPURDR
 										  sprint);
 			// }
 
+			m_TransformSystem->Update(m_Scene->GetRegistry());
+
 			ClearValue clearValue;
 			clearValue.color = 0x141414FF;
 			// ============================
@@ -295,6 +313,8 @@ namespace CPURDR
 				ImGui::End();
 			}
 
+			RenderSceneHierarchy();
+
 			if (show_demo_window)
 				ImGui::ShowDemoWindow(&show_demo_window);
 
@@ -342,6 +362,101 @@ namespace CPURDR
 			SDL_RenderPresent(m_ImGuiRenderer);
 		}
 	}
+
+	void App::RenderSceneHierarchy()
+	{
+		ImGui::Begin("Hierarchy");
+
+		if (!m_Scene)
+		{
+			ImGui::Text("No active scene");
+			ImGui::End();
+			return;
+		}
+
+		ImGui::Text("Scene: %s", m_Scene->GetName().c_str());
+		ImGui::Text("Total Entities: %zu", m_Scene->GetEntityCount());
+		ImGui::Separator();
+
+		std::function<void(entt::entity)> renderEntityNode;
+		renderEntityNode = [&](entt::entity entity)
+		{
+			if (!m_Scene->IsValidEntity(entity)) return;
+
+			auto* nameTag = m_Scene->GetRegistry().try_get<NameTag>(entity);
+			std::string entityName = nameTag? nameTag->name : "Unnamed Entity";
+
+			uint32_t entityID = static_cast<uint32_t>(entity);
+			std::string label = std::format("{} (ID: {})", entityName, entityID);
+
+			auto* hierarchy = m_Scene->GetRegistry().try_get<Hierarchy>(entity);
+			bool hasChildren = hierarchy && hierarchy->HasChildren();
+
+			ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow |
+									ImGuiTreeNodeFlags_OpenOnDoubleClick |
+										ImGuiTreeNodeFlags_SpanAvailWidth;
+
+			if (!hasChildren)
+			{
+				flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+			}
+
+			bool nodeOpen = ImGui::TreeNodeEx((void*)(intptr_t)entityID, flags, "%s", label.c_str());
+
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::BeginTooltip();
+				ImGui::Text("Entity ID: %u", entityID);
+
+				if (auto* transform = m_Scene->GetRegistry().try_get<Transform>(entity))
+				{
+					ImGui::Text("Transform: (%.2f, %.2f, %.2f)",
+						transform->position.x, transform->position.y, transform->position.z);
+				}
+
+				if (auto* meshFilter = m_Scene->GetRegistry().try_get<MeshFilter>(entity))
+				{
+					ImGui::Text("MeshFilter: %zu meshes", meshFilter->meshes.size());
+				}
+
+				if (m_Scene->GetRegistry().try_get<MeshRenderer>(entity))
+				{
+					ImGui::Text("MeshRenderer");
+				}
+
+				ImGui::EndTooltip();
+			}
+
+			if (hasChildren && nodeOpen)
+			{
+				for (entt::entity child: hierarchy->children)
+				{
+					renderEntityNode(child);
+				}
+				ImGui::TreePop();
+			}
+		};
+
+		auto rootEntities = m_Scene->GetRootEntities();
+
+		if (rootEntities.empty())
+		{
+			ImGui::TextDisabled("No entities in scene");
+		}
+		else
+		{
+			ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "Root Entities: %zu", rootEntities.size());
+			ImGui::Separator();
+
+			for (entt::entity root: rootEntities)
+			{
+				renderEntityNode(root);
+			}
+		}
+
+		ImGui::End();
+	}
+
 
 	void App::InitImGui()
 	{

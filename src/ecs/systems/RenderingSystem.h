@@ -1,10 +1,10 @@
 #pragma once
-#include "Context.h"
+#include "../../render/Context.h"
 #include "entt.hpp"
-#include "../Camera.h"
-#include "../ecs/components/MeshFilter.h"
-#include "../ecs/components/MeshRenderer.h"
-#include "../ecs/components/Transform.h"
+#include "../../Camera.h"
+#include "../components/MeshFilter.h"
+#include "../components/MeshRenderer.h"
+#include "../components/Transform.h"
 
 namespace CPURDR
 {

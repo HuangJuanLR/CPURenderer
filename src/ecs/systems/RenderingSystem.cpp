@@ -1,6 +1,6 @@
 #include "RenderingSystem.h"
 
-#include "../Graphics.h"
+#include "../../Graphics.h"
 #include "plog/Log.h"
 
 namespace CPURDR
@@ -45,7 +45,7 @@ namespace CPURDR
 			return;
 		}
 
-		glm::mat4 modelMatrix = transform.GetModelMatrix();
+		glm::mat4 modelMatrix = transform.GetWorldModelMatrix();
 
 		float time = SDL_GetTicks() / 1000.0f;
 		float rotationSpeed = 45.0f;

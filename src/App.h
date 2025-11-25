@@ -11,6 +11,7 @@ namespace CPURDR
 {
 	class Scene;
 	class RenderingSystem;
+	class TransformSystem;
 
 	class App
 	{
@@ -38,12 +39,14 @@ namespace CPURDR
 		void CleanUp();
 		void InitImGui();
 		void ShutdownImGui();
+		void RenderSceneHierarchy();
 
 	public:
 		bool success = true;
 	private:
 		std::shared_ptr<Scene> m_Scene;
 		std::unique_ptr<RenderingSystem> m_RenderingSystem;
+		std::unique_ptr<TransformSystem> m_TransformSystem;
 
 		std::unique_ptr<Window> m_RenderWindow;
 		std::shared_ptr<Context> m_RenderContext;

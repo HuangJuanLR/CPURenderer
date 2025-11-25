@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include <entt.hpp>
+#include "entt.hpp"
 
 #include "ecs/components/MeshFilter.h"
 
@@ -25,6 +25,20 @@ namespace CPURDR
 		const std::string& GetName() const {return m_Name;}
 		void SetName(const std::string& name) {m_Name = name;}
 
+		void SetParent(entt::entity child, entt::entity parent);
+		void RemoveParent(entt::entity child);
+		entt::entity GetParent(entt::entity child) const;
+		std::vector<entt::entity> GetChildren(entt::entity entity) const;
+		std::vector<entt::entity> GetRootEntities() const;
+
+		void DestroyEntityRecursive(entt::entity entity);
+
+		template<typename Func>
+		void TraverseSceneGraph(Func&& func);
+
+		template<typename Func>
+		void TraverseFromEntity(entt::entity root, Func&& func);
+
 		void Clear();
 		size_t GetEntityCount() const;
 
@@ -39,6 +53,8 @@ namespace CPURDR
 		{
 			return m_Registry.view<Components...>();
 		}
+	private:
+		void TraverseRecursive(entt::entity entity, const std::function<void(entt::entity)>& func);
 
 	private:
 		entt::registry m_Registry;
