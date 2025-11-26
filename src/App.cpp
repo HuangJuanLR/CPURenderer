@@ -266,10 +266,57 @@ namespace CPURDR
 			ImGui::NewFrame();
 
 			// ========================================
+			// Setup Dockspace
+			// ========================================
+			ImGuiViewport* mainViewport = ImGui::GetMainViewport();
+			ImGui::SetNextWindowPos(mainViewport->WorkPos);
+			ImGui::SetNextWindowSize(mainViewport->WorkSize);
+			ImGui::SetNextWindowViewport(mainViewport->ID);
+
+			ImGuiWindowFlags windowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+			windowFlags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
+			windowFlags |= ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+			windowFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
+			ImGui::Begin("DockSpaceWindow", nullptr, windowFlags);
+			ImGui::PopStyleVar(3);
+
+			ImGuiID dockspaceID = ImGui::GetID("MyDockSpace");
+			ImGui::DockSpace(dockspaceID, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode);
+
+			SetupDockingLayout();
+
+			if (ImGui::BeginMenuBar())
+			{
+				if (ImGui::BeginMenu("File"))
+				{
+					if (ImGui::MenuItem("Exit"))
+					{
+						m_RenderWindow->SetShouldClose(true);
+					}
+					ImGui::EndMenu();
+				}
+
+				if (ImGui::BeginMenu("View"))
+				{
+					ImGui::MenuItem("Demo Window", nullptr, &show_demo_window);
+					ImGui::EndMenu();
+				}
+
+				ImGui::EndMenuBar();
+			}
+
+			ImGui::End();
+
+			// ========================================
 			// Render context to ImGui Window
 			// ========================================
 			{
-				ImGui::Begin("CPURDR Output");
+				ImGui::Begin("Scene"); // Should match ImGui window name
 
 				if (m_DisplayTexture)
 				{
@@ -318,39 +365,6 @@ namespace CPURDR
 			if (show_demo_window)
 				ImGui::ShowDemoWindow(&show_demo_window);
 
-			{
-				static float f = 0.0f;
-				static int counter = 0;
-
-				ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-
-				ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-				ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-				ImGui::Checkbox("Another Window", &show_another_window);
-
-				ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-				ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-
-				if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-					counter++;
-				ImGui::SameLine();
-				ImGui::Text("counter = %d", counter);
-
-				ImGuiIO& io = ImGui::GetIO();
-				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-				ImGui::End();
-			}
-
-			// 3. Show another simple window.
-			if (show_another_window)
-			{
-				ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-				ImGui::Text("Hello from another window!");
-				if (ImGui::Button("Close Me"))
-					show_another_window = false;
-				ImGui::End();
-			}
-
 			// Rendering
 			ImGui::Render();
 			// ImGuiIO& io = ImGui::GetIO();
@@ -365,7 +379,7 @@ namespace CPURDR
 
 	void App::RenderSceneHierarchy()
 	{
-		ImGui::Begin("Hierarchy");
+		ImGui::Begin("Scene Hierarchy");
 
 		if (!m_Scene)
 		{
@@ -478,6 +492,30 @@ namespace CPURDR
 		ImGui_ImplSDL3_InitForSDLRenderer(m_RenderWindow->GetSDLWindow(), m_ImGuiRenderer);
 		ImGui_ImplSDLRenderer3_Init(m_ImGuiRenderer);
 	}
+
+	void App::SetupDockingLayout()
+	{
+		ImGuiViewport* viewport = ImGui::GetMainViewport();
+		ImGuiID dockspaceId = ImGui::GetID("MyDockSpace");
+
+		if (!m_DockingLayoutInitialized)
+		{
+			m_DockingLayoutInitialized = true;
+
+			ImGui::DockBuilderRemoveNode(dockspaceId);
+			ImGui::DockBuilderAddNode(dockspaceId, ImGuiDockNodeFlags_DockSpace);
+			ImGui::DockBuilderSetNodeSize(dockspaceId, viewport->Size);
+
+			ImGuiID dockLeft, dockRight;
+			ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Left, 0.25f, &dockLeft, &dockRight);
+
+			ImGui::DockBuilderDockWindow("Scene Hierarchy", dockLeft);
+			ImGui::DockBuilderDockWindow("Scene", dockRight);
+
+			ImGui::DockBuilderFinish(dockspaceId);
+		}
+	}
+
 
 	void App::ShutdownImGui()
 	{

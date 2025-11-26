@@ -41,6 +41,8 @@ namespace CPURDR
 		void ShutdownImGui();
 		void RenderSceneHierarchy();
 
+		void SetupDockingLayout();
+
 	public:
 		bool success = true;
 	private:
@@ -57,6 +59,7 @@ namespace CPURDR
 
 		std::unique_ptr<Camera> m_Camera;
 		bool m_MouseCaptured = false;
+		bool m_DockingLayoutInitialized = false;
 
 		SDL_Renderer* m_ImGuiRenderer;
 		SDL_Texture* m_DisplayTexture;
