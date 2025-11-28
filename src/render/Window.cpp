@@ -90,7 +90,7 @@ namespace CPURDR
 
 	void Window::CreateContext()
 	{
-		m_Context = std::make_shared<Context>(m_Width >> 2, m_Height >> 2);
+		m_Context = std::make_shared<Context>(m_Width >> 1, m_Height >> 1);
 	}
 
 	void Window::Present()
@@ -135,7 +135,7 @@ namespace CPURDR
 
 		if (m_Context)
 		{
-			m_Context->ResizeFramebuffer(width, height);
+			m_Context->ResizeFramebuffer(width >> 1, height >> 1);
 		}
 
 		if (m_ResizeCallback)

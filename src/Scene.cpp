@@ -19,6 +19,7 @@ namespace CPURDR
 		entt::entity entity = m_Registry.create();
 		m_Registry.emplace<NameTag>(entity, name);
 		m_Registry.emplace<Transform>(entity);
+		m_Registry.emplace<Hierarchy>(entity);
 		return entity;
 	}
 

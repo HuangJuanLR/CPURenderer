@@ -67,11 +67,14 @@ namespace CPURDR
 		m_RenderingSystem = std::make_unique<RenderingSystem>();
 		m_TransformSystem = std::make_unique<TransformSystem>();
 
-		// entt::entity teapotEntity = m_Scene->CreateMeshEntity("Teapot", "resources/assets/models/utah_teapot.obj");
+		// TODO: entity with no parent don't get displayed on hierarchy
+		entt::entity teapotEntity = m_Scene->CreateMeshEntity("Teapot", "resources/assets/models/utah_teapot.obj");
+		auto& teapotTransform = m_Scene->GetRegistry().get<Transform>(teapotEntity);
+		teapotTransform.position = glm::vec3(0.0f, -0.5f, 0.0f);
 
 		entt::entity parentEntity = m_Scene->CreateEntity("Parent");
 		auto& parentTransform = m_Scene->GetRegistry().get<Transform>(parentEntity);
-		parentTransform.position = glm::vec3(0.0f, -0.5f, 0.0f);
+		parentTransform.position = glm::vec3(-1.0f, -0.5f, -1.0f);
 		parentTransform.scale = glm::vec3(2.0f, 2.0f, 2.0f);
 
 		entt::entity childEntity = m_Scene->CreateMeshEntity("Child", "resources/assets/models/utah_teapot.obj");
@@ -82,14 +85,15 @@ namespace CPURDR
 		m_Scene->SetParent(childEntity, parentEntity);
 
 		m_Camera = std::make_unique<Camera>(
-			glm::vec3(1.5f, 1.5f, 1.5f),
+			glm::vec3(0.0f, 0.0f, 5.0f),
 			glm::vec3(0.0f, 1.0f, 0.0f),
 			0.0f,
-			0.0f
+			00.0f
 			);
 		m_Camera->LookAt(glm::vec3(0,0,0));
+		// m_Camera->SetRotation(0.0f, 0.0f, 0.0f);
 		m_Camera->SetFOV(60.0f);
-		m_Camera->SetClipPlanes(0.2f, 4.0f);
+		m_Camera->SetClipPlanes(0.1f, 20.0f);
 
 		InitImGui();
 	}
@@ -138,7 +142,7 @@ namespace CPURDR
 		int lineX = 10;
 		int lineY = 10;
 
-		bool show_demo_window = true;
+		bool show_demo_window = false;
 		bool show_another_window = false;
 		ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
@@ -212,15 +216,14 @@ namespace CPURDR
 
 			m_TransformSystem->Update(m_Scene->GetRegistry());
 
+			// ==================================
+			// Begin Rendering
+			// ==================================
 			ClearValue clearValue;
 			clearValue.color = 0x141414FF;
-			// ============================
 			// Standard-Z
-			// ============================
 			clearValue.depth = 1.0f;
-			// ============================
 			// Reversed-Z
-			// ============================
 			// clearValue.depth = 0.0f;
 			m_RenderContext->BeginRenderPass(clearValue);
 
@@ -250,7 +253,9 @@ namespace CPURDR
 			SDL_SetRenderDrawColor(m_ImGuiRenderer, 20, 20, 20, 255);
 			SDL_RenderClear(m_ImGuiRenderer);
 
-			// FPS
+			// =========================
+			// GUI Content
+			// =========================
 			fpsAcc += deltaTime;
 			fpsFrames++;
 			if (fpsAcc >= 0.05)
@@ -483,11 +488,133 @@ namespace CPURDR
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-		ImGui::StyleColorsDark();
+		float fontSize = 16.0f * main_scale;
+		io.Fonts->AddFontFromFileTTF("resources/fonts/Roboto-Regular.ttf", fontSize);
 
+		ImGui::StyleColorsDark();
 		ImGuiStyle& style = ImGui::GetStyle();
+
+		// Rounding (Unreal has minimal rounding)
+		style.WindowRounding = 0.0f;
+		style.ChildRounding = 0.0f;
+		style.FrameRounding = 0.0f;
+		style.PopupRounding = 0.0f;
+		style.ScrollbarRounding = 0.0f;
+		style.GrabRounding = 0.0f;
+		style.TabRounding = 0.0f;
+
+		// Spacing
+		style.WindowPadding = ImVec2(8.0f, 8.0f);
+		style.FramePadding = ImVec2(4.0f, 3.0f);
+		style.ItemSpacing = ImVec2(8.0f, 4.0f);
+		style.ItemInnerSpacing = ImVec2(4.0f, 4.0f);
+		style.IndentSpacing = 21.0f;
+		style.ScrollbarSize = 14.0f;
+		style.GrabMinSize = 10.0f;
+
+		// Borders
+		style.WindowBorderSize = 1.0f;
+		style.ChildBorderSize = 1.0f;
+		style.PopupBorderSize = 1.0f;
+		style.FrameBorderSize = 0.0f;
+		style.TabBorderSize = 0.0f;
+
+		// Colors - Unreal Engine Theme
+		ImVec4* colors = style.Colors;
+
+		// Unreal's signature colors
+		ImVec4 unrealDark = ImVec4(0.04f, 0.04f, 0.04f, 1.00f);        // Very dark background
+		ImVec4 unrealMediumDark = ImVec4(0.08f, 0.08f, 0.08f, 1.00f);  // Medium dark
+		ImVec4 unrealMedium = ImVec4(0.12f, 0.12f, 0.12f, 1.00f);      // Medium
+		ImVec4 unrealLight = ImVec4(0.18f, 0.18f, 0.18f, 1.00f);       // Lighter panels
+		ImVec4 unrealAccent = ImVec4(0.28f, 0.28f, 0.28f, 1.00f);      // Accent gray
+		ImVec4 unrealHighlight = ImVec4(1.00f, 0.47f, 0.00f, 1.00f);   // Orange highlight
+		ImVec4 unrealHighlightDim = ImVec4(0.80f, 0.38f, 0.00f, 1.00f); // Dimmer orange
+		ImVec4 unrealBorder = ImVec4(0.08f, 0.08f, 0.08f, 1.00f);      // Border color
+
+		// Window
+		colors[ImGuiCol_WindowBg] = unrealMedium;
+		colors[ImGuiCol_ChildBg] = unrealMediumDark;
+		colors[ImGuiCol_PopupBg] = unrealMedium;
+		colors[ImGuiCol_Border] = unrealBorder;
+		colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+
+		// Title
+		colors[ImGuiCol_TitleBg] = unrealDark;
+		colors[ImGuiCol_TitleBgActive] = unrealDark;
+		colors[ImGuiCol_TitleBgCollapsed] = unrealDark;
+
+		// Menu
+		colors[ImGuiCol_MenuBarBg] = unrealDark;
+
+		// Scrollbar
+		colors[ImGuiCol_ScrollbarBg] = unrealMediumDark;
+		colors[ImGuiCol_ScrollbarGrab] = unrealAccent;
+		colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.35f, 0.35f, 0.35f, 1.00f);
+		colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.42f, 0.42f, 0.42f, 1.00f);
+
+		// CheckMark & Sliders
+		colors[ImGuiCol_CheckMark] = unrealHighlight;
+		colors[ImGuiCol_SliderGrab] = unrealHighlightDim;
+		colors[ImGuiCol_SliderGrabActive] = unrealHighlight;
+
+		// Buttons
+		colors[ImGuiCol_Button] = unrealLight;
+		colors[ImGuiCol_ButtonHovered] = unrealAccent;
+		colors[ImGuiCol_ButtonActive] = unrealHighlight;
+
+		// Headers (collapsing headers, tree nodes)
+		colors[ImGuiCol_Header] = unrealLight;
+		colors[ImGuiCol_HeaderHovered] = unrealAccent;
+		colors[ImGuiCol_HeaderActive] = unrealHighlight;
+
+		// Separators
+		colors[ImGuiCol_Separator] = unrealBorder;
+		colors[ImGuiCol_SeparatorHovered] = unrealHighlightDim;
+		colors[ImGuiCol_SeparatorActive] = unrealHighlight;
+
+		// Resize Grip
+		colors[ImGuiCol_ResizeGrip] = unrealLight;
+		colors[ImGuiCol_ResizeGripHovered] = unrealAccent;
+		colors[ImGuiCol_ResizeGripActive] = unrealHighlight;
+
+		// Tabs
+		colors[ImGuiCol_Tab] = unrealMediumDark;
+		colors[ImGuiCol_TabHovered] = unrealAccent;
+		colors[ImGuiCol_TabActive] = unrealLight;
+		colors[ImGuiCol_TabUnfocused] = unrealMediumDark;
+		colors[ImGuiCol_TabUnfocusedActive] = unrealMedium;
+
+		// Docking
+		colors[ImGuiCol_DockingPreview] = ImVec4(1.00f, 0.47f, 0.00f, 0.70f);
+		colors[ImGuiCol_DockingEmptyBg] = unrealDark;
+
+		// Plots
+		colors[ImGuiCol_PlotLines] = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
+		colors[ImGuiCol_PlotLinesHovered] = unrealHighlight;
+		colors[ImGuiCol_PlotHistogram] = unrealHighlightDim;
+		colors[ImGuiCol_PlotHistogramHovered] = unrealHighlight;
+
+		// Text
+		colors[ImGuiCol_Text] = ImVec4(0.95f, 0.95f, 0.95f, 1.00f);
+		colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
+		colors[ImGuiCol_TextSelectedBg] = ImVec4(1.00f, 0.47f, 0.00f, 0.35f);
+
+		// Inputs
+		colors[ImGuiCol_FrameBg] = unrealMediumDark;
+		colors[ImGuiCol_FrameBgHovered] = unrealLight;
+		colors[ImGuiCol_FrameBgActive] = unrealAccent;
+
+		// Drag and Drop
+		colors[ImGuiCol_DragDropTarget] = unrealHighlight;
+
+		// Nav highlight
+		colors[ImGuiCol_NavHighlight] = unrealHighlight;
+		colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
+		colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
+		colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.60f);
+
 		style.ScaleAllSizes(main_scale);
-		style.FontScaleDpi = main_scale;
 
 		ImGui_ImplSDL3_InitForSDLRenderer(m_RenderWindow->GetSDLWindow(), m_ImGuiRenderer);
 		ImGui_ImplSDLRenderer3_Init(m_ImGuiRenderer);
