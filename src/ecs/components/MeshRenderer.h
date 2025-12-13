@@ -14,8 +14,6 @@ namespace CPURDR
 
 		bool backfaceCulling = true;
 
-		MeshRenderer() = default;
-		explicit MeshRenderer(bool enable): enabled(enable) {}
 
 		void SetTintRGB(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255)
 		{

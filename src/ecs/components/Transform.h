@@ -10,7 +10,6 @@ namespace CPURDR
 		glm::vec3 position = glm::vec3(0.0f);
 		glm::quat rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f); // identity
 		glm::vec3 scale = glm::vec3(1.0f);
-
 		// World transform
 		glm::vec3 worldPosition = glm::vec3(0.0f);
 		glm::quat worldRotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
@@ -18,16 +17,7 @@ namespace CPURDR
 
 		bool isDirty = true;
 
-		Transform() = default;
-		Transform(
-			const glm::vec3& position,
-			const glm::quat& rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f),
-			const glm::vec3& scale = glm::vec3(1.0f)
-			): position(position), rotation(rotation), scale(scale),
-			worldPosition(position), worldRotation(rotation), worldScale(scale){}
-
 		glm::mat4 GetLocalModelMatrix() const;
-
 		glm::mat4 GetWorldModelMatrix() const;
 
 		void SetRotationEuler(float pitch, float yaw, float roll);

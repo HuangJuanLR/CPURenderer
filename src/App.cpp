@@ -1,14 +1,17 @@
 #include <iostream>
 #include <format>
 #include "imgui.h"
+#include "gtc/type_ptr.hpp"
 #include "App.h"
+
+#include "ComponentMetadataSetup.h"
 #include "Graphics.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlrenderer3.h"
 #include "imgui_internal.h"
 #include "Log.h"
+#include "PFRInspector.h"
 #include "render/Context.h"
-#include "entt.hpp"
 #include "Scene.h"
 #include "ecs/components/Hierarchy.h"
 #include "ecs/components/NameTag.h"
@@ -96,6 +99,7 @@ namespace CPURDR
 		m_Camera->SetClipPlanes(0.1f, 20.0f);
 
 		InitImGui();
+		SetupComponentMetadata();
 	}
 
 	App::~App()
@@ -367,6 +371,8 @@ namespace CPURDR
 
 			RenderSceneHierarchy();
 
+			RenderInspector();
+
 			if (show_demo_window)
 				ImGui::ShowDemoWindow(&show_demo_window);
 
@@ -405,7 +411,7 @@ namespace CPURDR
 			auto* nameTag = m_Scene->GetRegistry().try_get<NameTag>(entity);
 			std::string entityName = nameTag? nameTag->name : "Unnamed Entity";
 
-			uint32_t entityID = static_cast<uint32_t>(entity);
+			auto entityID = static_cast<uint32_t>(entity);
 			std::string label = std::format("{} (ID: {})", entityName, entityID);
 
 			auto* hierarchy = m_Scene->GetRegistry().try_get<Hierarchy>(entity);
@@ -415,12 +421,23 @@ namespace CPURDR
 									ImGuiTreeNodeFlags_OpenOnDoubleClick |
 										ImGuiTreeNodeFlags_SpanAvailWidth;
 
+			if (m_HasSelection && m_SelectedEntity == entity)
+			{
+				flags |= ImGuiTreeNodeFlags_Selected;
+			}
+
 			if (!hasChildren)
 			{
 				flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
 			}
 
 			bool nodeOpen = ImGui::TreeNodeEx((void*)(intptr_t)entityID, flags, "%s", label.c_str());
+
+			if (ImGui::IsItemClicked())
+			{
+				m_SelectedEntity = entity;
+				m_HasSelection = true;
+			}
 
 			if (ImGui::IsItemHovered())
 			{
@@ -471,6 +488,12 @@ namespace CPURDR
 			{
 				renderEntityNode(root);
 			}
+		}
+
+		if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(0) && !ImGui::IsAnyItemHovered())
+		{
+			m_HasSelection = false;
+			m_SelectedEntity = entt::null;
 		}
 
 		ImGui::End();
@@ -633,14 +656,94 @@ namespace CPURDR
 			ImGui::DockBuilderAddNode(dockspaceId, ImGuiDockNodeFlags_DockSpace);
 			ImGui::DockBuilderSetNodeSize(dockspaceId, viewport->Size);
 
-			ImGuiID dockLeft, dockRight;
-			ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Left, 0.25f, &dockLeft, &dockRight);
+			ImGuiID dockLeft, dockCenterRight;
+			ImGui::DockBuilderSplitNode(dockspaceId,ImGuiDir_Left, 0.25f,
+				&dockLeft, &dockCenterRight);
+
+			ImGuiID dockCenter, dockRight;
+			ImGui::DockBuilderSplitNode(dockCenterRight, ImGuiDir_Right, 0.25f,
+				&dockRight, &dockCenter);
 
 			ImGui::DockBuilderDockWindow("Scene Hierarchy", dockLeft);
-			ImGui::DockBuilderDockWindow("Scene", dockRight);
+			ImGui::DockBuilderDockWindow("Scene", dockCenter);
+			ImGui::DockBuilderDockWindow("Inspector", dockRight);
 
 			ImGui::DockBuilderFinish(dockspaceId);
 		}
+	}
+
+	void App::RenderInspector()
+	{
+		ImGui::Begin("Inspector");
+
+		if (!m_Scene)
+		{
+			ImGui::TextDisabled("No active scene");
+			ImGui::End();
+			return;
+		}
+
+		if (!m_HasSelection || !m_Scene->IsValidEntity(m_SelectedEntity))
+		{
+			ImGui::TextDisabled("No entity selected");
+			ImGui::End();
+			return;
+		}
+
+		entt::registry& registry = m_Scene->GetRegistry();
+
+		NameTag* nameTag = registry.try_get<NameTag>(m_SelectedEntity);
+		std::string entityName = nameTag? nameTag->name : "Unnamed Entity";
+		auto entityID = static_cast<uint32_t>(m_SelectedEntity);
+
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.47f, 0.0f, 1.0f));
+		ImGui::Text("%s", entityName.c_str());
+		ImGui::PopStyleColor();
+		ImGui::Text("Entity ID: %u", entityID);
+		ImGui::Separator();
+
+		if (nameTag)
+		{
+			if (PFRInspector::DrawComponentInspector(*nameTag))
+			{
+
+			}
+		}
+
+		if (auto* transform = registry.try_get<Transform>(m_SelectedEntity))
+		{
+			if (PFRInspector::DrawComponentInspector(*transform))
+			{
+				transform->MarkDirty();
+			}
+		}
+
+		if (auto* meshRenderer = registry.try_get<MeshRenderer>(m_SelectedEntity))
+		{
+			PFRInspector::DrawComponentInspector(*meshRenderer);
+		}
+
+		if (auto* meshFilter = registry.try_get<MeshFilter>(m_SelectedEntity))
+		{
+			if (ImGui::CollapsingHeader("MeshFilter"))
+			{
+				ImGui::Text("Meshes: %zu", meshFilter->meshes.size());
+				for (size_t i = 0; i < meshFilter->meshes.size(); i++)
+				{
+					const auto& mesh = meshFilter->meshes[i];
+					if (ImGui::TreeNode((void*)(intptr_t)i, "Mesh %zu", i))
+					{
+						ImGui::Text("Vertices: %zu", mesh.vertices.size());
+						ImGui::Text("Indices: %zu", mesh.indices.size());
+						ImGui::Text("Triangles: %zu", mesh.indices.size() / 3);
+						ImGui::TreePop();
+					}
+				}
+				ImGui::Spacing();
+			}
+		}
+
+		ImGui::End();
 	}
 
 

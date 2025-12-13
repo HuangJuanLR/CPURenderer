@@ -8,9 +8,6 @@ namespace CPURDR
 		entt::entity parent = entt::null;
 		std::vector<entt::entity> children;
 
-		Hierarchy() = default;
-		explicit Hierarchy(entt::entity parent) : parent(parent) {}
-
 		bool HasParent() const {return parent != entt::null;}
 		bool HasChildren() const {return !children.empty();}
 		size_t GetChildren() const {return children.size();}

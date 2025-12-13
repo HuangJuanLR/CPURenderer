@@ -8,6 +8,7 @@ endif()
 
 include_directories(Dependencies/sdl3/include)
 include_directories(Dependencies/glm)
+include_directories(Dependencies/pfr)
 include_directories(Dependencies/assimp/include)
 include_directories(Dependencies/plog/include)
 include_directories(Dependencies/imgui/include)
@@ -62,6 +63,12 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/Dependencies/glm
         $<TARGET_FILE_DIR:${PROJECT_NAME}>/Dependencies/glm
+)
+
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/Dependencies/pfr
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>/Dependencies/pfr
 )
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD

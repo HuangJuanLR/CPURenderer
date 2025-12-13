@@ -3,6 +3,7 @@
 #include <glm.hpp>
 #include <memory>
 
+#include "entt.hpp"
 #include "Model.h"
 #include "assimp/scene.h"
 #include "render/Window.h"
@@ -42,6 +43,7 @@ namespace CPURDR
 		void RenderSceneHierarchy();
 
 		void SetupDockingLayout();
+		void RenderInspector();
 
 	public:
 		bool success = true;
@@ -60,6 +62,9 @@ namespace CPURDR
 		std::unique_ptr<Camera> m_Camera;
 		bool m_MouseCaptured = false;
 		bool m_DockingLayoutInitialized = false;
+
+		entt::entity m_SelectedEntity = entt::null;
+		bool m_HasSelection = false;
 
 		SDL_Renderer* m_ImGuiRenderer;
 		SDL_Texture* m_DisplayTexture;
