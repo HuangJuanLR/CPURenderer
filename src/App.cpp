@@ -4,13 +4,13 @@
 #include "gtc/type_ptr.hpp"
 #include "App.h"
 
-#include "ComponentMetadataSetup.h"
+#include "ComponentReflection.h"
 #include "Graphics.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlrenderer3.h"
 #include "imgui_internal.h"
 #include "Log.h"
-#include "PFRInspector.h"
+#include "MetaInspector.h"
 #include "render/Context.h"
 #include "Scene.h"
 #include "ecs/components/Hierarchy.h"
@@ -99,7 +99,7 @@ namespace CPURDR
 		m_Camera->SetClipPlanes(0.1f, 20.0f);
 
 		InitImGui();
-		SetupComponentMetadata();
+		RegisterComponentReflection();
 	}
 
 	App::~App()
@@ -702,46 +702,27 @@ namespace CPURDR
 		ImGui::Text("Entity ID: %u", entityID);
 		ImGui::Separator();
 
-		if (nameTag)
+		if (registry.all_of<NameTag>(m_SelectedEntity))
 		{
-			if (PFRInspector::DrawComponentInspector(*nameTag))
-			{
+			auto& nameTag = registry.get<NameTag>(m_SelectedEntity);
+			MetaInspector::DrawComponentInspector(nameTag);
+		}
+		if (registry.all_of<Transform>(m_SelectedEntity))
+		{
+			auto& transform = registry.get<Transform>(m_SelectedEntity);
+			MetaInspector::DrawComponentInspector(transform);
+			transform.MarkDirty();
+		}
+		if (registry.all_of<MeshFilter>(m_SelectedEntity))
+		{
 
-			}
+		}
+		if (registry.all_of<MeshRenderer>(m_SelectedEntity))
+		{
+			auto& meshRenderer = registry.get<MeshRenderer>(m_SelectedEntity);
+			MetaInspector::DrawComponentInspector(meshRenderer);
 		}
 
-		if (auto* transform = registry.try_get<Transform>(m_SelectedEntity))
-		{
-			if (PFRInspector::DrawComponentInspector(*transform))
-			{
-				transform->MarkDirty();
-			}
-		}
-
-		if (auto* meshRenderer = registry.try_get<MeshRenderer>(m_SelectedEntity))
-		{
-			PFRInspector::DrawComponentInspector(*meshRenderer);
-		}
-
-		if (auto* meshFilter = registry.try_get<MeshFilter>(m_SelectedEntity))
-		{
-			if (ImGui::CollapsingHeader("MeshFilter"))
-			{
-				ImGui::Text("Meshes: %zu", meshFilter->meshes.size());
-				for (size_t i = 0; i < meshFilter->meshes.size(); i++)
-				{
-					const auto& mesh = meshFilter->meshes[i];
-					if (ImGui::TreeNode((void*)(intptr_t)i, "Mesh %zu", i))
-					{
-						ImGui::Text("Vertices: %zu", mesh.vertices.size());
-						ImGui::Text("Indices: %zu", mesh.indices.size());
-						ImGui::Text("Triangles: %zu", mesh.indices.size() / 3);
-						ImGui::TreePop();
-					}
-				}
-				ImGui::Spacing();
-			}
-		}
 
 		ImGui::End();
 	}
