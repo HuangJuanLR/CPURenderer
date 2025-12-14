@@ -16,19 +16,22 @@ namespace CPURDR
 
 			if (!hierarchy || !hierarchy->HasParent())
 			{
-				UpdateTransformHierarchy(registry, entity, glm::mat4(1.0f));
+				UpdateTransformHierarchy(registry, entity, glm::mat4(1.0f), false);
 			}
 		}
 	}
 
-	void TransformSystem::UpdateTransformHierarchy(entt::registry& registry, entt::entity entity, const glm::mat4& parentWorldMatrix)
+	void TransformSystem::UpdateTransformHierarchy(
+		entt::registry& registry, entt::entity entity,
+		const glm::mat4& parentWorldMatrix, bool parentDirty)
 	{
 		if (!registry.valid(entity)) return;
 
 		auto* transform = registry.try_get<Transform>(entity);
 		if (!transform) return;
 
-		UpdateWorldTransform(*transform, parentWorldMatrix);
+		bool needsUpdate = transform->isDirty || parentDirty;
+		UpdateWorldTransform(*transform, parentWorldMatrix, parentDirty);
 
 		glm::mat4 currentWorldMatrix = transform->GetWorldModelMatrix();
 
@@ -37,14 +40,14 @@ namespace CPURDR
 		{
 			for (entt::entity child: hierarchy->children)
 			{
-				UpdateTransformHierarchy(registry, child, currentWorldMatrix);
+				UpdateTransformHierarchy(registry, child, currentWorldMatrix, needsUpdate);
 			}
 		}
 	}
 
-	void TransformSystem::UpdateWorldTransform(Transform& transform, const glm::mat4& parentWorldMatrix)
+	void TransformSystem::UpdateWorldTransform(Transform& transform, const glm::mat4& parentWorldMatrix, bool parentDirty)
 	{
-		if (!transform.isDirty) return;
+		if (!transform.isDirty && !parentDirty) return;
 
 		glm::mat4 localMatrix = transform.GetLocalModelMatrix();
 		glm::mat4 worldMatrix = parentWorldMatrix * localMatrix;

@@ -2,6 +2,7 @@
 #include <entt.hpp>
 #include "MetaReflection.h"
 #include "ecs/components/Hierarchy.h"
+#include "ecs/components/MeshFilter.h"
 #include "ecs/components/MeshRenderer.h"
 #include "ecs/components/NameTag.h"
 #include "ecs/components/Transform.h"
@@ -90,7 +91,6 @@ namespace CPURDR
 		// ==================================
 		// MeshRenderer
 		// ==================================
-
 		entt::meta_factory<MeshRenderer>{}
 		.type("MeshRenderer"_hs)
 		.custom<ComponentMetadata>(ComponentMetadata{

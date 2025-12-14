@@ -74,6 +74,7 @@ namespace CPURDR
 		entt::entity teapotEntity = m_Scene->CreateMeshEntity("Teapot", "resources/assets/models/utah_teapot.obj");
 		auto& teapotTransform = m_Scene->GetRegistry().get<Transform>(teapotEntity);
 		teapotTransform.position = glm::vec3(0.0f, -0.5f, 0.0f);
+		teapotTransform.scale = glm::vec3(2.0f, 1.0f, 1.0f);
 
 		entt::entity parentEntity = m_Scene->CreateEntity("Parent");
 		auto& parentTransform = m_Scene->GetRegistry().get<Transform>(parentEntity);
@@ -217,6 +218,15 @@ namespace CPURDR
 										  moveLeft, moveRight,
 										  sprint);
 			// }
+
+			if (m_SelectedEntity != entt::null)
+			{
+				auto& teapotTransform = m_Scene->GetRegistry().get<Transform>(m_SelectedEntity);
+				float time = SDL_GetTicks() / 1000.0f;
+				float rotationAngle = time * 4.5f;
+				teapotTransform.rotation = glm::angleAxis(rotationAngle, glm::vec3(0.0f, 1.0f, 0.0f));
+				teapotTransform.MarkDirty();
+			}
 
 			m_TransformSystem->Update(m_Scene->GetRegistry());
 
@@ -713,14 +723,30 @@ namespace CPURDR
 			MetaInspector::DrawComponentInspector(transform);
 			transform.MarkDirty();
 		}
-		if (registry.all_of<MeshFilter>(m_SelectedEntity))
-		{
-
-		}
 		if (registry.all_of<MeshRenderer>(m_SelectedEntity))
 		{
 			auto& meshRenderer = registry.get<MeshRenderer>(m_SelectedEntity);
 			MetaInspector::DrawComponentInspector(meshRenderer);
+		}
+
+		if (auto* meshFilter = registry.try_get<MeshFilter>(m_SelectedEntity))
+		{
+			if (ImGui::CollapsingHeader("MeshFilter"))
+			{
+				ImGui::Text("Meshes: %zu", meshFilter->meshes.size());
+				for (size_t i = 0; i < meshFilter->meshes.size(); i++)
+				{
+					const auto& mesh = meshFilter->meshes[i];
+					if (ImGui::TreeNode((void*)(intptr_t)i, "Mesh %zu", i))
+					{
+						ImGui::Text("Vertices: %zu", mesh.vertices.size());
+						ImGui::Text("Indices: %zu", mesh.indices.size());
+						ImGui::Text("Triangles: %zu", mesh.indices.size() / 3);
+						ImGui::TreePop();
+					}
+				}
+				ImGui::Spacing();
+			}
 		}
 
 

@@ -18,12 +18,14 @@ namespace CPURDR
 		void UpdateTransformHierarchy(
 			entt::registry& registry,
 			entt::entity entity,
-			const glm::mat4& parentWorldMatrix = glm::mat4(1.0f)
+			const glm::mat4& parentWorldMatrix = glm::mat4(1.0f),
+			bool parentDirty = false
 		);
 
 		void UpdateWorldTransform(
 			Transform& transform,
-			const glm::mat4& parentWorldMatrix
+			const glm::mat4& parentWorldMatrix,
+			bool parentDirty
 		);
 	};
 }

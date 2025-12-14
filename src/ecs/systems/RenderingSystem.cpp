@@ -47,11 +47,6 @@ namespace CPURDR
 
 		glm::mat4 modelMatrix = transform.GetWorldModelMatrix();
 
-		float time = SDL_GetTicks() / 1000.0f;
-		float rotationSpeed = 45.0f;
-		float rotationAngle = time * rotationSpeed;
-		modelMatrix = glm::rotate(modelMatrix, glm::radians(rotationAngle), glm::vec3(0.0f, 1.0f, 0.0f));
-
 		glm::mat4 viewMatrix = camera.GetViewMatrix();
 		glm::mat4 projectionMatrix = camera.GetProjectionMatrix(aspectRatio);
 
