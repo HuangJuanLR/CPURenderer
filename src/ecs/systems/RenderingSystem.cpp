@@ -83,9 +83,9 @@ namespace CPURDR
 			if (clip1.w != 0.0f) clip1 /= clip1.w;
 			if (clip2.w != 0.0f) clip2 /= clip2.w;
 
-			if (clip0.x < -1.0f || clip0.x > 1.0f || clip0.y < -1.0f || clip0.y > 1.0f) continue;
-			if (clip1.x < -1.0f || clip1.x > 1.0f || clip1.y < -1.0f || clip1.y > 1.0f) continue;
-			if (clip2.x < -1.0f || clip2.x > 1.0f || clip2.y < -1.0f || clip2.y > 1.0f) continue;
+			// if (clip0.x < -1.0f || clip0.x > 1.0f || clip0.y < -1.0f || clip0.y > 1.0f) continue;
+			// if (clip1.x < -1.0f || clip1.x > 1.0f || clip1.y < -1.0f || clip1.y > 1.0f) continue;
+			// if (clip2.x < -1.0f || clip2.x > 1.0f || clip2.y < -1.0f || clip2.y > 1.0f) continue;
 
 			if (clip0.z < 0.0f || clip0.z > 1.0f) continue;
 			if (clip1.z < 0.0f || clip1.z > 1.0f) continue;

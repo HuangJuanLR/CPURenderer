@@ -13,6 +13,7 @@
 #include "MetaInspector.h"
 #include "render/Context.h"
 #include "Scene.h"
+#include "Primitives.h"
 #include "ecs/components/Hierarchy.h"
 #include "ecs/components/NameTag.h"
 #include "ecs/systems/RenderingSystem.h"
@@ -70,7 +71,7 @@ namespace CPURDR
 		m_RenderingSystem = std::make_unique<RenderingSystem>();
 		m_TransformSystem = std::make_unique<TransformSystem>();
 
-		// TODO: entity with no parent don't get displayed on hierarchy
+		// TODO: Scene setup should be separated
 		entt::entity teapotEntity = m_Scene->CreateMeshEntity("Teapot", "resources/assets/models/utah_teapot.obj");
 		auto& teapotTransform = m_Scene->GetRegistry().get<Transform>(teapotEntity);
 		teapotTransform.position = glm::vec3(0.0f, -0.5f, 0.0f);
@@ -87,6 +88,12 @@ namespace CPURDR
 		childTransform.scale = glm::vec3(0.5f, 0.5f, 0.5f);
 
 		m_Scene->SetParent(childEntity, parentEntity);
+
+		Mesh cubeMesh = Primitives::Cube(1.0f);
+		entt::entity cubeEntity = m_Scene->CreateMeshEntity("Cube", MeshFilter({cubeMesh}));
+		auto& cubeTransform = m_Scene->GetRegistry().get<Transform>(cubeEntity);
+		cubeTransform.scale = glm::vec3(2.0f, 2.5f, 2.0f);
+		cubeTransform.SetRotationEuler(0.0f, 45.0f, 30.0f);
 
 		m_Camera = std::make_unique<Camera>(
 			glm::vec3(0.0f, 0.0f, 5.0f),
