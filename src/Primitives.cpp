@@ -109,7 +109,8 @@ namespace CPURDR
 			}
 		}
 
-		return Mesh(vertices, indices);
+		auto colors = GenerateRandomColors(indices.size() / 3);
+		return Mesh(vertices, indices, colors);
 	}
 
 	Mesh Primitives::Plane(float width, float height, int subdivisionX, int subdivisionZ)
@@ -156,7 +157,8 @@ namespace CPURDR
 			}
 		}
 
-		return Mesh{vertices, indices};
+		auto colors = GenerateRandomColors(indices.size() / 3);
+		return Mesh{vertices, indices, colors};
 	}
 
 	Mesh Primitives::Quad(float width, float height)
@@ -259,7 +261,8 @@ namespace CPURDR
             indices.push_back(br);
         }
 
-        return Mesh(vertices, indices);
+		auto colors = GenerateRandomColors(indices.size() / 3);
+        return Mesh(vertices, indices, colors);
 	}
 
 	Mesh Primitives::Capsule(float radius, float height, int segments, int rings)
@@ -320,6 +323,22 @@ namespace CPURDR
             }
         }
 
+		unsigned int cylinderStartIdx = (unsigned int)vertices.size();
+		for (int i = 0; i <= segments; i++)
+		{
+			float theta = 2.0f * PI * (float)i / (float)segments;
+			float x = radius * std::cos(theta);
+			float z = radius * std::sin(theta);
+
+			glm::vec3 normal(std::cos(theta), 0.0f, std::sin(theta));
+			float u = (float)i / (float)segments;
+
+			// Top of cylinder (connects to bottom of top hemisphere)
+			vertices.push_back({{x, halfCylinderHeight, z}, {u, 0.25f}, normal});
+			// Bottom of cylinder (connects to top of bottom hemisphere)
+			vertices.push_back({{x, -halfCylinderHeight, z}, {u, 0.75f}, normal});
+		}
+
         // Top hemisphere indices
         for (int ring = 0; ring < rings; ring++)
         {
@@ -356,7 +375,24 @@ namespace CPURDR
             }
         }
 
-        return Mesh(vertices, indices);
+		for (int i = 0; i < segments; i++)
+		{
+			unsigned int tl = cylinderStartIdx + i * 2;
+			unsigned int bl = tl + 1;
+			unsigned int tr = tl + 2;
+			unsigned int br = tr + 1;
+
+			indices.push_back(tl);
+			indices.push_back(bl);
+			indices.push_back(tr);
+
+			indices.push_back(tr);
+			indices.push_back(bl);
+			indices.push_back(br);
+		}
+
+		auto colors = GenerateRandomColors(indices.size() / 3);
+        return Mesh(vertices, indices, colors);
 	}
 
 	std::vector<SDL_Color> Primitives::GenerateRandomColors(size_t count)

@@ -66,34 +66,27 @@ namespace CPURDR
 		if (success)
 			PLOG_INFO << "SDL3 Initialized" << std::endl;
 
-		// Give ECS a try
 		m_Scene = SceneManager::GetInstance().CreateScene("Main Scene");
 		m_RenderingSystem = std::make_unique<RenderingSystem>();
 		m_TransformSystem = std::make_unique<TransformSystem>();
 
 		// TODO: Scene setup should be separated
-		entt::entity teapotEntity = m_Scene->CreateMeshEntity("Teapot", "resources/assets/models/utah_teapot.obj");
-		auto& teapotTransform = m_Scene->GetRegistry().get<Transform>(teapotEntity);
-		teapotTransform.position = glm::vec3(0.0f, -0.5f, 0.0f);
-		teapotTransform.scale = glm::vec3(2.0f, 1.0f, 1.0f);
+		// entt::entity teapotEntity = m_Scene->CreateMeshEntity("Teapot", "resources/assets/models/utah_teapot.obj");
+		// auto& teapotTransform = m_Scene->GetRegistry().get<Transform>(teapotEntity);
+		// teapotTransform.position = glm::vec3(0.0f, -0.5f, 0.0f);
+		// teapotTransform.scale = glm::vec3(2.0f, 1.0f, 1.0f);
+		//
+		// entt::entity parentEntity = m_Scene->CreateEntity("Parent");
+		// auto& parentTransform = m_Scene->GetRegistry().get<Transform>(parentEntity);
+		// parentTransform.position = glm::vec3(-1.0f, -0.5f, -1.0f);
+		// parentTransform.scale = glm::vec3(2.0f, 2.0f, 2.0f);
+		//
+		// entt::entity childEntity = m_Scene->CreateMeshEntity("Child", "resources/assets/models/utah_teapot.obj");
+		// auto& childTransform = m_Scene->GetRegistry().get<Transform>(childEntity);
+		// childTransform.position = glm::vec3(0.0f, 0.0f, 0.0f);
+		// childTransform.scale = glm::vec3(0.5f, 0.5f, 0.5f);
 
-		entt::entity parentEntity = m_Scene->CreateEntity("Parent");
-		auto& parentTransform = m_Scene->GetRegistry().get<Transform>(parentEntity);
-		parentTransform.position = glm::vec3(-1.0f, -0.5f, -1.0f);
-		parentTransform.scale = glm::vec3(2.0f, 2.0f, 2.0f);
-
-		entt::entity childEntity = m_Scene->CreateMeshEntity("Child", "resources/assets/models/utah_teapot.obj");
-		auto& childTransform = m_Scene->GetRegistry().get<Transform>(childEntity);
-		childTransform.position = glm::vec3(0.0f, 0.0f, 0.0f);
-		childTransform.scale = glm::vec3(0.5f, 0.5f, 0.5f);
-
-		m_Scene->SetParent(childEntity, parentEntity);
-
-		Mesh cubeMesh = Primitives::Cube(1.0f);
-		entt::entity cubeEntity = m_Scene->CreateMeshEntity("Cube", MeshFilter({cubeMesh}));
-		auto& cubeTransform = m_Scene->GetRegistry().get<Transform>(cubeEntity);
-		cubeTransform.scale = glm::vec3(2.0f, 2.5f, 2.0f);
-		cubeTransform.SetRotationEuler(0.0f, 45.0f, 30.0f);
+		// m_Scene->SetParent(childEntity, parentEntity);
 
 		m_Camera = std::make_unique<Camera>(
 			glm::vec3(0.0f, 0.0f, 5.0f),
@@ -104,7 +97,7 @@ namespace CPURDR
 		m_Camera->LookAt(glm::vec3(0,0,0));
 		// m_Camera->SetRotation(0.0f, 0.0f, 0.0f);
 		m_Camera->SetFOV(60.0f);
-		m_Camera->SetClipPlanes(0.1f, 20.0f);
+		m_Camera->SetClipPlanes(0.1f, 100.0f);
 
 		InitImGui();
 		RegisterComponentReflection();
@@ -330,6 +323,32 @@ namespace CPURDR
 				if (ImGui::BeginMenu("View"))
 				{
 					ImGui::MenuItem("Demo Window", nullptr, &show_demo_window);
+					ImGui::EndMenu();
+				}
+
+				if (ImGui::BeginMenu("GameObject"))
+				{
+					if (ImGui::BeginMenu("3D Object"))
+					{
+						glm::vec3 spawnPosition = m_Camera->GetPosition() + m_Camera->GetFront() * 10.0f;
+
+						auto createPrimitiveEntity = [&](const std::string& name, const Mesh& mesh, float scale = 1.0f) {
+							entt::entity entity = m_Scene->CreateMeshEntity(name, MeshFilter({mesh}));
+							auto& transform = m_Scene->GetRegistry().get<Transform>(entity);
+							transform.position = spawnPosition;
+							transform.scale = glm::vec3(scale);
+							transform.rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+						};
+
+						if (ImGui::MenuItem("Cube"))      createPrimitiveEntity("Cube", Primitives::Cube());
+						if (ImGui::MenuItem("Sphere"))    createPrimitiveEntity("Sphere", Primitives::Sphere());
+						if (ImGui::MenuItem("Plane"))     createPrimitiveEntity("Plane", Primitives::Plane(), 10.0f);
+						if (ImGui::MenuItem("Quad"))      createPrimitiveEntity("Quad", Primitives::Quad());
+						if (ImGui::MenuItem("Cylinder"))  createPrimitiveEntity("Cylinder", Primitives::Cylinder());
+						if (ImGui::MenuItem("Capsule"))   createPrimitiveEntity("Capsule", Primitives::Capsule());
+
+						ImGui::EndMenu();
+					}
 					ImGui::EndMenu();
 				}
 

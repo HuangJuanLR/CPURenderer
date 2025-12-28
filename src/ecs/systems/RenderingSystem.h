@@ -32,5 +32,12 @@ namespace CPURDR
 			Context* context,
 			uint32_t tint
 		);
+
+		void ClipAndRenderTriangle(
+			const glm::vec4& v0, const glm::vec4& v1, const glm::vec4& v2,
+			int width, int height,
+			Texture2D_RFloat* depthBuffer, Texture2D_RGBA* colorBuffer,
+			const SDL_Color& col, float nearPlane
+			);
 	};
 }

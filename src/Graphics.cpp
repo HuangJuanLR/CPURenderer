@@ -197,9 +197,9 @@ void Graphics::Triangle(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, const int& wid
 	// if (area > 0.0) return; // Backface culling
 
 #pragma omp parallel for
-	for (int x = bboxMin.x; x < bboxMax.x; x++)
+	for (int x = bboxMin.x; x <= bboxMax.x; x++)
 	{
-		for (int y = bboxMin.y; y < bboxMax.y; y++)
+		for (int y = bboxMin.y; y <= bboxMax.y; y++)
 		{
 			// If PCA, PBC, PAB and ABC are all clock/couter-clockwise
 			// P is inside ABC
@@ -211,6 +211,8 @@ void Graphics::Triangle(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, const int& wid
 			if (pbc < 0 || pca < 0 || pab < 0) continue;
 
 			float depth = static_cast<float>(pbc * p0.z + pca * p1.z + pab * p2.z);
+
+			if (depth < 0.0f || depth > 1.0f) continue;
 
 			// ============================
 			// Standard-Z

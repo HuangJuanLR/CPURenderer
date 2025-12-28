@@ -90,7 +90,7 @@ namespace CPURDR
 
 	void Window::CreateContext()
 	{
-		m_Context = std::make_shared<Context>(m_Width >> 1, m_Height >> 1);
+		m_Context = std::make_shared<Context>(m_Width >> 3, m_Height >> 3);
 	}
 
 	void Window::Present()
