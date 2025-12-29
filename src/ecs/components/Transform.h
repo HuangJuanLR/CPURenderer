@@ -10,6 +10,8 @@ namespace CPURDR
 		glm::vec3 position = glm::vec3(0.0f);
 		glm::quat rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f); // identity
 		glm::vec3 scale = glm::vec3(1.0f);
+		glm::vec3 eulerAngles = glm::vec3(0.0f);
+
 		// World transform
 		glm::vec3 worldPosition = glm::vec3(0.0f);
 		glm::quat worldRotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
@@ -21,6 +23,7 @@ namespace CPURDR
 		glm::mat4 GetWorldModelMatrix() const;
 
 		void SetRotationEuler(float pitch, float yaw, float roll);
+		void SetEulerAngles(const glm::vec3& euler);
 		void Rotate(float angle, const glm::vec3& axis);
 		glm::vec3 GetEulerAngles() const;
 

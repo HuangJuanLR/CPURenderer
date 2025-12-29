@@ -221,11 +221,11 @@ namespace CPURDR
 
 			if (m_SelectedEntity != entt::null)
 			{
-				auto& teapotTransform = m_Scene->GetRegistry().get<Transform>(m_SelectedEntity);
+				auto& selectedTransform = m_Scene->GetRegistry().get<Transform>(m_SelectedEntity);
 				float time = SDL_GetTicks() / 1000.0f;
 				float rotationAngle = time * 4.5f;
-				teapotTransform.rotation = glm::angleAxis(rotationAngle, glm::vec3(0.0f, 1.0f, 0.0f));
-				teapotTransform.MarkDirty();
+				// selectedTransform.rotation = glm::angleAxis(rotationAngle, glm::vec3(0.0f, 1.0f, 0.0f));
+				// selectedTransform.MarkDirty();
 			}
 
 			m_TransformSystem->Update(m_Scene->GetRegistry());

@@ -2,6 +2,7 @@
 #include "entt.hpp"
 #include "imgui.h"
 #include "MetaReflection.h"
+#include "ecs/components/Transform.h"
 
 namespace CPURDR
 {
@@ -116,12 +117,36 @@ namespace CPURDR
                 glm::quat value = fieldValue.cast<glm::quat>();
                 if (meta.convertQuaternionToEuler)
                 {
-                    glm::vec3 euler = glm::degrees(glm::eulerAngles(value));
-                    if (ImGui::DragFloat3(displayName, glm::value_ptr(euler), 0.5f))
-                    {
-                        data.set(instance, glm::quat(glm::radians(euler)));
-                        changed = true;
-                    }
+                	entt::meta_type instanceType = instance.type();
+
+                	glm::vec3 euler;
+                	bool usesCachedEuler = false;
+
+                	if (instanceType == entt::resolve<Transform>())
+                	{
+                		Transform& transform = instance.cast<Transform&>();
+                		euler = transform.GetEulerAngles();
+                		usesCachedEuler = true;
+                	}
+                	else
+                	{
+                		// Fallback for other quaternion fields
+                		euler = glm::degrees(glm::eulerAngles(value));
+                	}
+
+                	if (ImGui::DragFloat3(displayName, glm::value_ptr(euler), 0.5f))
+                	{
+                		if (usesCachedEuler)
+                		{
+                			Transform& transform = instance.cast<Transform&>();
+                			transform.SetEulerAngles(euler);
+                		}
+                		else
+                		{
+                			data.set(instance, glm::quat(glm::radians(euler)));
+                		}
+                		changed = true;
+                	}
                 }
                 else
                 {

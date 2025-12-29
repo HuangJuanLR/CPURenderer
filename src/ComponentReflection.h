@@ -38,6 +38,13 @@ namespace CPURDR
 				.speed = 0.01f,
 				.convertQuaternionToEuler = true
 			})
+		.data<&Transform::eulerAngles>("eulerAngles"_hs)
+			.custom<FieldMetadata>(FieldMetadata{
+				.displayName = "Euler Angles",
+				.editable = false,
+				.visible = false,
+				.speed = 0.01f,
+			})
 		.data<&Transform::scale>("scale"_hs)
 				.custom<FieldMetadata>(FieldMetadata{
 					.displayName = "Scale",

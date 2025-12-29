@@ -24,14 +24,21 @@ namespace CPURDR
 		rotation = glm::quat(glm::radians(glm::vec3(pitch, yaw, roll)));
 	}
 
+	void Transform::SetEulerAngles(const glm::vec3& euler)
+	{
+		eulerAngles = euler;
+		rotation = glm::quat(glm::radians(euler));
+	}
+
 	void Transform::Rotate(float angle, const glm::vec3& axis)
 	{
 		rotation = glm::rotate(rotation, glm::radians(angle), axis);
+		eulerAngles = glm::degrees(glm::eulerAngles(rotation));
 	}
 
 	glm::vec3 Transform::GetEulerAngles() const
 	{
-		return glm::degrees(glm::eulerAngles(rotation));
+		return eulerAngles;
 	}
 
 
