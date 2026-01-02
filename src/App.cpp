@@ -5,6 +5,7 @@
 #include "App.h"
 
 #include "ComponentReflection.h"
+#include "Gizmos.h"
 #include "Graphics.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlrenderer3.h"
@@ -69,24 +70,6 @@ namespace CPURDR
 		m_Scene = SceneManager::GetInstance().CreateScene("Main Scene");
 		m_RenderingSystem = std::make_unique<RenderingSystem>();
 		m_TransformSystem = std::make_unique<TransformSystem>();
-
-		// TODO: Scene setup should be separated
-		// entt::entity teapotEntity = m_Scene->CreateMeshEntity("Teapot", "resources/assets/models/utah_teapot.obj");
-		// auto& teapotTransform = m_Scene->GetRegistry().get<Transform>(teapotEntity);
-		// teapotTransform.position = glm::vec3(0.0f, -0.5f, 0.0f);
-		// teapotTransform.scale = glm::vec3(2.0f, 1.0f, 1.0f);
-		//
-		// entt::entity parentEntity = m_Scene->CreateEntity("Parent");
-		// auto& parentTransform = m_Scene->GetRegistry().get<Transform>(parentEntity);
-		// parentTransform.position = glm::vec3(-1.0f, -0.5f, -1.0f);
-		// parentTransform.scale = glm::vec3(2.0f, 2.0f, 2.0f);
-		//
-		// entt::entity childEntity = m_Scene->CreateMeshEntity("Child", "resources/assets/models/utah_teapot.obj");
-		// auto& childTransform = m_Scene->GetRegistry().get<Transform>(childEntity);
-		// childTransform.position = glm::vec3(0.0f, 0.0f, 0.0f);
-		// childTransform.scale = glm::vec3(0.5f, 0.5f, 0.5f);
-
-		// m_Scene->SetParent(childEntity, parentEntity);
 
 		m_Camera = std::make_unique<Camera>(
 			glm::vec3(0.0f, 0.0f, 5.0f),
@@ -249,6 +232,8 @@ namespace CPURDR
 			m_RenderContext->SetViewport(viewport);
 
 			m_RenderingSystem->Render(m_Scene->GetRegistry(), m_RenderContext.get(), *m_Camera);
+
+			Gizmos::DrawAxis(m_RenderContext.get(), *m_Camera, 2.0f, 0.03f);
 
 			m_RenderContext->EndRenderPass();
 
