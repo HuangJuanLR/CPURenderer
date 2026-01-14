@@ -45,6 +45,13 @@ namespace CPURDR
 		void SetupDockingLayout();
 		void RenderInspector();
 
+		void HandleEntityDeletion();
+		void RenderInspectorMultiSelect();
+		bool IsEntitySelected(entt::entity entity) const;
+		void SelectEntity(entt::entity entity, bool addToSelection = false);
+		void DeselectEntity(entt::entity entity);
+		void ClearSelection();
+
 	public:
 		bool success = true;
 	private:
@@ -63,7 +70,7 @@ namespace CPURDR
 		bool m_MouseCaptured = false;
 		bool m_DockingLayoutInitialized = false;
 
-		entt::entity m_SelectedEntity = entt::null;
+		std::vector<entt::entity> m_SelectedEntities;
 		bool m_HasSelection = false;
 
 		SDL_Renderer* m_ImGuiRenderer;

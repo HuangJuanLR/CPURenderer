@@ -31,6 +31,10 @@ namespace CPURDR
 		std::vector<entt::entity> GetChildren(entt::entity entity) const;
 		std::vector<entt::entity> GetRootEntities() const;
 
+		void ReorderEntity(entt::entity entity, size_t newIndex);
+		size_t GetEntityOrder(entt::entity entity) const;
+		void SetEntityOrder(entt::entity entity, size_t order);
+
 		void DestroyEntityRecursive(entt::entity entity);
 
 		template<typename Func>
@@ -59,6 +63,9 @@ namespace CPURDR
 	private:
 		entt::registry m_Registry;
 		std::string m_Name;
+
+		std::unordered_map<entt::entity, size_t> m_EntityOrder;
+		size_t m_NextOrder = 0;
 	};
 
 	class SceneManager

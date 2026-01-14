@@ -194,24 +194,14 @@ namespace CPURDR
 			bool sprint = m_Keys[SDL_SCANCODE_LSHIFT];
 
 			ImGuiIO& io = ImGui::GetIO();
-			// if (!io.WantCaptureMouse && !io.WantCaptureKeyboard)
-			// {
-				m_Camera->ProcessKeyboard(static_cast<float>(deltaTime),
-										  moveForward, moveBackward,
-										  moveLeft, moveRight,
-										  sprint);
-			// }
-
-			if (m_SelectedEntity != entt::null)
-			{
-				auto& selectedTransform = m_Scene->GetRegistry().get<Transform>(m_SelectedEntity);
-				float time = SDL_GetTicks() / 1000.0f;
-				float rotationAngle = time * 4.5f;
-				// selectedTransform.rotation = glm::angleAxis(rotationAngle, glm::vec3(0.0f, 1.0f, 0.0f));
-				// selectedTransform.MarkDirty();
-			}
+			m_Camera->ProcessKeyboard(static_cast<float>(deltaTime),
+									  moveForward, moveBackward,
+									  moveLeft, moveRight,
+									  sprint);
 
 			m_TransformSystem->Update(m_Scene->GetRegistry());
+
+			HandleEntityDeletion();
 
 			// ==================================
 			// Begin Rendering
@@ -313,6 +303,18 @@ namespace CPURDR
 
 				if (ImGui::BeginMenu("GameObject"))
 				{
+					if (ImGui::MenuItem("Create Empty"))
+					{
+						glm::vec3 spawnPosition = m_Camera->GetPosition() + m_Camera->GetFront() * 10.0f;
+						entt::entity entity = m_Scene->CreateEntity("Empty Entity");
+						auto& transform = m_Scene->GetRegistry().get<Transform>(entity);
+						transform.position = spawnPosition;
+						transform.scale = glm::vec3(1.0f);
+						transform.rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+					}
+
+					ImGui::Separator();
+
 					if (ImGui::BeginMenu("3D Object"))
 					{
 						glm::vec3 spawnPosition = m_Camera->GetPosition() + m_Camera->GetFront() * 10.0f;
@@ -410,115 +412,358 @@ namespace CPURDR
 	}
 
 	void App::RenderSceneHierarchy()
-	{
-		ImGui::Begin("Scene Hierarchy");
+{
+    ImGui::Begin("Scene Hierarchy");
 
-		if (!m_Scene)
-		{
-			ImGui::Text("No active scene");
-			ImGui::End();
-			return;
-		}
+    if (!m_Scene)
+    {
+        ImGui::Text("No active scene");
+        ImGui::End();
+        return;
+    }
 
-		ImGui::Text("Scene: %s", m_Scene->GetName().c_str());
-		ImGui::Text("Total Entities: %zu", m_Scene->GetEntityCount());
-		ImGui::Separator();
+    ImGui::Text("Scene: %s", m_Scene->GetName().c_str());
+    ImGui::Text("Total Entities: %zu", m_Scene->GetEntityCount());
+    ImGui::Separator();
 
-		std::function<void(entt::entity)> renderEntityNode;
-		renderEntityNode = [&](entt::entity entity)
-		{
-			if (!m_Scene->IsValidEntity(entity)) return;
+    static entt::entity draggedEntity = entt::null;
+    static std::vector<entt::entity> draggedEntities;
+    static bool isDragging = false;
 
-			auto* nameTag = m_Scene->GetRegistry().try_get<NameTag>(entity);
-			std::string entityName = nameTag? nameTag->name : "Unnamed Entity";
+    struct InsertionPoint
+    {
+        bool active = false;
+        ImVec2 lineStart;
+        ImVec2 lineEnd;
+        size_t insertIndex;
+        entt::entity insertParent = entt::null;
+    };
+    static InsertionPoint insertion;
 
-			auto entityID = static_cast<uint32_t>(entity);
-			std::string label = std::format("{} (ID: {})", entityName, entityID);
+    // Store item bounds for post-processing
+    struct ItemBounds
+    {
+        ImVec2 min;
+        ImVec2 max;
+        entt::entity entity;
+        entt::entity parent;
+        size_t indexInParent;
+    };
+    std::vector<ItemBounds> allItemBounds;
 
-			auto* hierarchy = m_Scene->GetRegistry().try_get<Hierarchy>(entity);
-			bool hasChildren = hierarchy && hierarchy->HasChildren();
+    // Reset insertion each frame
+    insertion.active = false;
 
-			ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow |
-									ImGuiTreeNodeFlags_OpenOnDoubleClick |
-										ImGuiTreeNodeFlags_SpanAvailWidth;
+    std::function<void(entt::entity, size_t, entt::entity)> renderEntityNode;
+    renderEntityNode = [&](entt::entity entity, size_t indexInParent, entt::entity parent)
+    {
+        if (!m_Scene->IsValidEntity(entity)) return;
 
-			if (m_HasSelection && m_SelectedEntity == entity)
-			{
-				flags |= ImGuiTreeNodeFlags_Selected;
-			}
+        auto* nameTag = m_Scene->GetRegistry().try_get<NameTag>(entity);
+        std::string entityName = nameTag ? nameTag->name : "Unnamed Entity";
 
-			if (!hasChildren)
-			{
-				flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-			}
+        auto entityID = static_cast<uint32_t>(entity);
+        std::string label = std::format("{} (ID: {})", entityName, entityID);
 
-			bool nodeOpen = ImGui::TreeNodeEx((void*)(intptr_t)entityID, flags, "%s", label.c_str());
+        auto* hierarchy = m_Scene->GetRegistry().try_get<Hierarchy>(entity);
+        bool hasChildren = hierarchy && hierarchy->HasChildren();
 
-			if (ImGui::IsItemClicked())
-			{
-				m_SelectedEntity = entity;
-				m_HasSelection = true;
-			}
+        ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow |
+                                ImGuiTreeNodeFlags_OpenOnDoubleClick |
+                                ImGuiTreeNodeFlags_SpanAvailWidth;
 
-			if (ImGui::IsItemHovered())
-			{
-				ImGui::BeginTooltip();
-				ImGui::Text("Entity ID: %u", entityID);
+        if (IsEntitySelected(entity))
+        {
+            flags |= ImGuiTreeNodeFlags_Selected;
+        }
 
-				if (auto* transform = m_Scene->GetRegistry().try_get<Transform>(entity))
-				{
-					ImGui::Text("Transform: (%.2f, %.2f, %.2f)",
-						transform->position.x, transform->position.y, transform->position.z);
-				}
+        if (!hasChildren)
+        {
+            flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+        }
 
-				if (auto* meshFilter = m_Scene->GetRegistry().try_get<MeshFilter>(entity))
-				{
-					ImGui::Text("MeshFilter: %zu meshes", meshFilter->meshes.size());
-				}
+        bool nodeOpen = ImGui::TreeNodeEx((void*)(intptr_t)entityID, flags, "%s", label.c_str());
 
-				if (m_Scene->GetRegistry().try_get<MeshRenderer>(entity))
-				{
-					ImGui::Text("MeshRenderer");
-				}
+        // Store item bounds for later processing
+        ItemBounds bounds;
+        bounds.min = ImGui::GetItemRectMin();
+        bounds.max = ImGui::GetItemRectMax();
+        bounds.entity = entity;
+        bounds.parent = parent;
+        bounds.indexInParent = indexInParent;
+        allItemBounds.push_back(bounds);
 
-				ImGui::EndTooltip();
-			}
+        // Handle clicking
+        if (ImGui::IsItemClicked() && !isDragging)
+        {
+            ImGuiIO& io = ImGui::GetIO();
+            bool multiSelect = io.KeyCtrl || io.KeyShift;
 
-			if (hasChildren && nodeOpen)
-			{
-				for (entt::entity child: hierarchy->children)
-				{
-					renderEntityNode(child);
-				}
-				ImGui::TreePop();
-			}
-		};
+            if (multiSelect)
+            {
+                if (IsEntitySelected(entity))
+                {
+                    DeselectEntity(entity);
+                }
+                else
+                {
+                    SelectEntity(entity, true);
+                }
+            }
+            else
+            {
+                SelectEntity(entity, false);
+            }
+        }
 
-		auto rootEntities = m_Scene->GetRootEntities();
+        // Drag source
+        if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
+        {
+            if (IsEntitySelected(entity))
+            {
+                draggedEntities = m_SelectedEntities;
+                ImGui::SetDragDropPayload("DND_ENTITIES", m_SelectedEntities.data(),
+                                        m_SelectedEntities.size() * sizeof(entt::entity));
+                ImGui::Text("Moving %zu entities", m_SelectedEntities.size());
+            }
+            else
+            {
+                draggedEntities = {entity};
+                ImGui::SetDragDropPayload("DND_ENTITY", &entity, sizeof(entt::entity));
+                ImGui::Text("Moving: %s", entityName.c_str());
+            }
+            draggedEntity = entity;
+            isDragging = true;
+            ImGui::EndDragDropSource();
+        }
 
-		if (rootEntities.empty())
-		{
-			ImGui::TextDisabled("No entities in scene");
-		}
-		else
-		{
-			ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "Root Entities: %zu", rootEntities.size());
-			ImGui::Separator();
+        // Drop target for parenting (center of item)
+        if (ImGui::BeginDragDropTarget())
+        {
+            const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_ENTITY");
+            if (!payload)
+            {
+                payload = ImGui::AcceptDragDropPayload("DND_ENTITIES");
+            }
 
-			for (entt::entity root: rootEntities)
-			{
-				renderEntityNode(root);
-			}
-		}
+            if (payload)
+            {
+                ImDrawList* drawList = ImGui::GetWindowDrawList();
+                drawList->AddRect(bounds.min, bounds.max, IM_COL32(0, 255, 0, 200), 0.0f, 0, 2.0f);
 
-		if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(0) && !ImGui::IsAnyItemHovered())
-		{
-			m_HasSelection = false;
-			m_SelectedEntity = entt::null;
-		}
+                if (payload->IsDelivery())
+                {
+                    size_t count = payload->DataSize / sizeof(entt::entity);
+                    entt::entity* entities = (entt::entity*)payload->Data;
 
-		ImGui::End();
-	}
+                    for (size_t i = 0; i < count; i++)
+                    {
+                        if (entities[i] != entity)
+                        {
+                            m_Scene->SetParent(entities[i], entity);
+                        }
+                    }
+                    PLOG_INFO << "Parented " << count << " entities to " << entityName;
+                }
+            }
+            ImGui::EndDragDropTarget();
+        }
+
+        // Tooltip
+        if (ImGui::IsItemHovered() && !isDragging)
+        {
+            ImGui::BeginTooltip();
+            ImGui::Text("Entity ID: %u", entityID);
+
+            if (auto* transform = m_Scene->GetRegistry().try_get<Transform>(entity))
+            {
+                ImGui::Text("Transform: (%.2f, %.2f, %.2f)",
+                    transform->position.x, transform->position.y, transform->position.z);
+            }
+            ImGui::EndTooltip();
+        }
+
+        if (hasChildren && nodeOpen)
+        {
+            std::vector<entt::entity> sortedChildren = hierarchy->children;
+            std::sort(sortedChildren.begin(), sortedChildren.end(),
+                [this](entt::entity a, entt::entity b)
+                {
+                    return m_Scene->GetEntityOrder(a) < m_Scene->GetEntityOrder(b);
+                });
+
+            for (size_t i = 0; i < sortedChildren.size(); i++)
+            {
+                renderEntityNode(sortedChildren[i], i, entity);
+            }
+            ImGui::TreePop();
+        }
+    };
+
+    auto rootEntities = m_Scene->GetRootEntities();
+
+    if (rootEntities.empty())
+    {
+        ImGui::TextDisabled("No entities in scene");
+    }
+    else
+    {
+        ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "Root Entities: %zu", rootEntities.size());
+        ImGui::Separator();
+
+        for (size_t i = 0; i < rootEntities.size(); i++)
+        {
+            renderEntityNode(rootEntities[i], i, entt::null);
+        }
+    }
+
+    // Post-process: Check mouse position against all item bounds for insertion
+    if (isDragging && !allItemBounds.empty())
+    {
+        ImVec2 mousePos = ImGui::GetMousePos();
+
+        for (const auto& bounds : allItemBounds)
+        {
+            // Skip the entity being dragged
+            bool isDraggedEntity = std::find(draggedEntities.begin(), draggedEntities.end(),
+                                            bounds.entity) != draggedEntities.end();
+            if (isDraggedEntity) continue;
+
+            float itemHeight = bounds.max.y - bounds.min.y;
+            float insertZoneHeight = itemHeight * 0.3f;
+
+            // Check if mouse is within this item's X range
+            if (mousePos.x >= bounds.min.x && mousePos.x <= bounds.max.x)
+            {
+                // Check top zone
+                if (mousePos.y >= bounds.min.y && mousePos.y < bounds.min.y + insertZoneHeight)
+                {
+                    insertion.active = true;
+                    insertion.insertParent = bounds.parent;
+                    insertion.insertIndex = bounds.indexInParent;
+                    insertion.lineStart = ImVec2(bounds.min.x, bounds.min.y);
+                    insertion.lineEnd = ImVec2(bounds.max.x, bounds.min.y);
+                    break;
+                }
+                // Check bottom zone
+                else if (mousePos.y > bounds.max.y - insertZoneHeight && mousePos.y <= bounds.max.y)
+                {
+                    insertion.active = true;
+                    insertion.insertParent = bounds.parent;
+                    insertion.insertIndex = bounds.indexInParent + 1;
+                    insertion.lineStart = ImVec2(bounds.min.x, bounds.max.y);
+                    insertion.lineEnd = ImVec2(bounds.max.x, bounds.max.y);
+                    break;
+                }
+            }
+        }
+    }
+
+    // Draw insertion line and handle drop
+    if (insertion.active)
+    {
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
+        drawList->AddLine(insertion.lineStart, insertion.lineEnd, IM_COL32(255, 255, 0, 255), 3.0f);
+
+        if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+        {
+            // Get siblings at target level
+            std::vector<entt::entity> targetSiblings;
+            if (insertion.insertParent == entt::null)
+            {
+                targetSiblings = m_Scene->GetRootEntities();
+            }
+            else
+            {
+                targetSiblings = m_Scene->GetChildren(insertion.insertParent);
+                std::sort(targetSiblings.begin(), targetSiblings.end(),
+                    [this](entt::entity a, entt::entity b) {
+                        return m_Scene->GetEntityOrder(a) < m_Scene->GetEntityOrder(b);
+                    });
+            }
+
+            // Calculate target order
+            size_t targetOrder = 0;
+            if (insertion.insertIndex < targetSiblings.size())
+            {
+                targetOrder = m_Scene->GetEntityOrder(targetSiblings[insertion.insertIndex]);
+            }
+            else if (!targetSiblings.empty())
+            {
+                targetOrder = m_Scene->GetEntityOrder(targetSiblings.back()) + 1;
+            }
+
+            for (entt::entity draggedEnt : draggedEntities)
+            {
+                if (insertion.insertParent == entt::null)
+                {
+                    m_Scene->RemoveParent(draggedEnt);
+                }
+                else
+                {
+                    m_Scene->SetParent(draggedEnt, insertion.insertParent);
+                }
+                m_Scene->ReorderEntity(draggedEnt, targetOrder);
+            }
+
+            PLOG_INFO << "Moved and reordered " << draggedEntities.size() << " entities";
+            insertion.active = false;
+        }
+    }
+
+    // Empty space drop target for unparenting
+    if (isDragging && !insertion.active)
+    {
+        ImGui::InvisibleButton("##EmptySpace", ImVec2(ImGui::GetContentRegionAvail().x, 50.0f));
+
+        if (ImGui::BeginDragDropTarget())
+        {
+            const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_ENTITY");
+            if (!payload)
+            {
+                payload = ImGui::AcceptDragDropPayload("DND_ENTITIES");
+            }
+
+            if (payload && payload->IsDelivery())
+            {
+                size_t count = payload->DataSize / sizeof(entt::entity);
+                entt::entity* entities = (entt::entity*)payload->Data;
+
+                for (size_t i = 0; i < count; i++)
+                {
+                    m_Scene->RemoveParent(entities[i]);
+                }
+                PLOG_INFO << "Unparented " << count << " entities";
+            }
+            ImGui::EndDragDropTarget();
+        }
+
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::GetWindowDrawList()->AddRectFilled(
+                ImGui::GetItemRectMin(), ImGui::GetItemRectMax(),
+                IM_COL32(100, 100, 100, 50)
+            );
+        }
+    }
+
+    // Clear selection on empty click
+    if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(0) && !ImGui::IsAnyItemHovered())
+    {
+        ClearSelection();
+    }
+
+    // Reset drag state
+    if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+    {
+        isDragging = false;
+        draggedEntity = entt::null;
+        draggedEntities.clear();
+        insertion.active = false;
+    }
+
+    ImGui::End();
+}
 
 
 	void App::InitImGui()
@@ -693,7 +938,34 @@ namespace CPURDR
 		}
 	}
 
+	void App::HandleEntityDeletion()
+	{
+		ImGuiIO& io = ImGui::GetIO();
+
+		if (ImGui::IsKeyPressed(ImGuiKey_Delete) && !io.WantTextInput)
+		{
+			if (m_HasSelection && !m_SelectedEntities.empty())
+			{
+				for (entt::entity entity: m_SelectedEntities)
+				{
+					if (m_Scene->IsValidEntity(entity))
+					{
+						m_Scene->DestroyEntityRecursive(entity);
+					}
+				}
+
+				ClearSelection();
+				PLOG_INFO << "Deleted selected entities";
+			}
+		}
+	}
+
 	void App::RenderInspector()
+	{
+		RenderInspectorMultiSelect();
+	}
+
+	void App::RenderInspectorMultiSelect()
 	{
 		ImGui::Begin("Inspector");
 
@@ -704,7 +976,7 @@ namespace CPURDR
 			return;
 		}
 
-		if (!m_HasSelection || !m_Scene->IsValidEntity(m_SelectedEntity))
+		if (!m_HasSelection || m_SelectedEntities.empty())
 		{
 			ImGui::TextDisabled("No entity selected");
 			ImGui::End();
@@ -713,55 +985,194 @@ namespace CPURDR
 
 		entt::registry& registry = m_Scene->GetRegistry();
 
-		NameTag* nameTag = registry.try_get<NameTag>(m_SelectedEntity);
-		std::string entityName = nameTag? nameTag->name : "Unnamed Entity";
-		auto entityID = static_cast<uint32_t>(m_SelectedEntity);
+		if (m_SelectedEntities.size() == 1)
+		{
+			entt::entity entity = m_SelectedEntities[0];
 
-		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.47f, 0.0f, 1.0f));
-		ImGui::Text("%s", entityName.c_str());
-		ImGui::PopStyleColor();
-		ImGui::Text("Entity ID: %u", entityID);
-		ImGui::Separator();
-
-		if (registry.all_of<NameTag>(m_SelectedEntity))
-		{
-			auto& nameTag = registry.get<NameTag>(m_SelectedEntity);
-			MetaInspector::DrawComponentInspector(nameTag);
-		}
-		if (registry.all_of<Transform>(m_SelectedEntity))
-		{
-			auto& transform = registry.get<Transform>(m_SelectedEntity);
-			MetaInspector::DrawComponentInspector(transform);
-			transform.MarkDirty();
-		}
-		if (registry.all_of<MeshRenderer>(m_SelectedEntity))
-		{
-			auto& meshRenderer = registry.get<MeshRenderer>(m_SelectedEntity);
-			MetaInspector::DrawComponentInspector(meshRenderer);
-		}
-
-		if (auto* meshFilter = registry.try_get<MeshFilter>(m_SelectedEntity))
-		{
-			if (ImGui::CollapsingHeader("MeshFilter"))
+			if (!m_Scene->IsValidEntity(entity))
 			{
-				ImGui::Text("Meshes: %zu", meshFilter->meshes.size());
-				for (size_t i = 0; i < meshFilter->meshes.size(); i++)
+				ImGui::TextDisabled("Invalid entity");
+				ImGui::End();
+				return;
+			}
+
+			NameTag* nameTag = registry.try_get<NameTag>(entity);
+			std::string entityName = nameTag? nameTag->name : "Unnamed Entity";
+			auto entityID = static_cast<uint32_t>(entity);
+
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.47f, 0.0f, 1.0f));
+			ImGui::Text("%s", entityName.c_str());
+			ImGui::PopStyleColor();
+			ImGui::Text("Entity ID: %u", entityID);
+			ImGui::Separator();
+
+			if (registry.all_of<NameTag>(entity))
+			{
+				auto& nameTag = registry.get<NameTag>(entity);
+				MetaInspector::DrawComponentInspector(nameTag);
+			}
+			if (registry.all_of<Transform>(entity))
+			{
+				auto& transform = registry.get<Transform>(entity);
+				MetaInspector::DrawComponentInspector(transform);
+				transform.MarkDirty();
+			}
+			if (registry.all_of<MeshRenderer>(entity))
+			{
+				auto& meshRenderer = registry.get<MeshRenderer>(entity);
+				MetaInspector::DrawComponentInspector(meshRenderer);
+			}
+
+			if (auto* meshFilter = registry.try_get<MeshFilter>(entity))
+			{
+				if (ImGui::CollapsingHeader("MeshFilter"))
 				{
-					const auto& mesh = meshFilter->meshes[i];
-					if (ImGui::TreeNode((void*)(intptr_t)i, "Mesh %zu", i))
+					ImGui::Text("Meshes: %zu", meshFilter->meshes.size());
+					for (size_t i = 0; i < meshFilter->meshes.size(); i++)
 					{
-						ImGui::Text("Vertices: %zu", mesh.vertices.size());
-						ImGui::Text("Indices: %zu", mesh.indices.size());
-						ImGui::Text("Triangles: %zu", mesh.indices.size() / 3);
-						ImGui::TreePop();
+						const auto& mesh = meshFilter->meshes[i];
+						if (ImGui::TreeNode((void*)(intptr_t)i, "Mesh %zu", i))
+						{
+							ImGui::Text("Vertices: %zu", mesh.vertices.size());
+							ImGui::Text("Indices: %zu", mesh.indices.size());
+							ImGui::Text("Triangles: %zu", mesh.indices.size() / 3);
+							ImGui::TreePop();
+						}
 					}
+					ImGui::Spacing();
 				}
-				ImGui::Spacing();
+			}
+		}
+		else
+		{
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.47f, 0.0f, 1.0f));
+			ImGui::Text("Multiple Entities Selected (%zu)", m_SelectedEntities.size());
+			ImGui::PopStyleColor();
+			ImGui::Separator();
+
+			bool allHaveTransform = true;
+			bool allHaveMeshRenderer = true;
+			bool allHaveMeshFilter = true;
+
+			for (entt::entity entity : m_SelectedEntities)
+			{
+				if (!registry.all_of<Transform>(entity)) allHaveTransform = false;
+				if (!registry.all_of<MeshRenderer>(entity)) allHaveMeshRenderer = false;
+				if (!registry.all_of<MeshFilter>(entity)) allHaveMeshFilter = false;
+			}
+
+			if (allHaveTransform)
+			{
+				if (ImGui::CollapsingHeader("Transform (Common)"))
+            {
+                auto& firstTransform = registry.get<Transform>(m_SelectedEntities[0]);
+
+                glm::vec3 commonPosition = firstTransform.position;
+                glm::vec3 commonScale = firstTransform.scale;
+                glm::vec3 commonRotation = glm::eulerAngles(firstTransform.rotation);
+
+                bool positionSame = true, scaleSame = true, rotationSame = true;
+
+                for (size_t i = 1; i < m_SelectedEntities.size(); i++)
+                {
+                    auto& transform = registry.get<Transform>(m_SelectedEntities[i]);
+                    if (transform.position != commonPosition) positionSame = false;
+                    if (transform.scale != commonScale) scaleSame = false;
+                    if (glm::eulerAngles(transform.rotation) != commonRotation) rotationSame = false;
+                }
+
+                // Position
+                ImGui::Text("Position:");
+                if (positionSame)
+                {
+                    glm::vec3 newPos = commonPosition;
+                    if (ImGui::DragFloat3("##Position", glm::value_ptr(newPos), 0.1f))
+                    {
+                        for (entt::entity entity : m_SelectedEntities)
+                        {
+                            auto& transform = registry.get<Transform>(entity);
+                            transform.position = newPos;
+                            transform.MarkDirty();
+                        }
+                    }
+                }
+                else
+                {
+                    ImGui::TextDisabled(" -");
+                }
+
+                // Scale
+                ImGui::Text("Scale:");
+                if (scaleSame)
+                {
+                    glm::vec3 newScale = commonScale;
+                    if (ImGui::DragFloat3("##Scale", glm::value_ptr(newScale), 0.1f))
+                    {
+                        for (entt::entity entity : m_SelectedEntities)
+                        {
+                            auto& transform = registry.get<Transform>(entity);
+                            transform.scale = newScale;
+                            transform.MarkDirty();
+                        }
+                    }
+                }
+                else
+                {
+                    ImGui::TextDisabled(" -");
+                }
+
+                ImGui::Spacing();
+            }
+			}
+
+			if (allHaveMeshRenderer)
+			{
+				ImGui::Text("MeshRenderer (Common)");
+			}
+			if (allHaveMeshFilter)
+			{
+				ImGui::Text("MeshFilter (Common)");
 			}
 		}
 
-
 		ImGui::End();
+	}
+
+	bool App::IsEntitySelected(entt::entity entity) const
+	{
+		return std::find(m_SelectedEntities.begin(), m_SelectedEntities.end(), entity)
+				!= m_SelectedEntities.end();
+	}
+
+	void App::SelectEntity(entt::entity entity, bool addToSelection)
+	{
+		if (!addToSelection)
+		{
+			m_SelectedEntities.clear();
+		}
+
+		if (!IsEntitySelected(entity))
+		{
+			m_SelectedEntities.push_back(entity);
+		}
+
+		m_HasSelection = !m_SelectedEntities.empty();
+	}
+
+	void App::DeselectEntity(entt::entity entity)
+	{
+		auto it = std::find(m_SelectedEntities.begin(), m_SelectedEntities.end(), entity);
+		if (it != m_SelectedEntities.end())
+		{
+			m_SelectedEntities.erase(it);
+		}
+		m_HasSelection = !m_SelectedEntities.empty();
+	}
+
+	void App::ClearSelection()
+	{
+		m_SelectedEntities.clear();
+		m_HasSelection = false;
 	}
 
 

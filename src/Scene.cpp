@@ -20,6 +20,9 @@ namespace CPURDR
 		m_Registry.emplace<NameTag>(entity, name);
 		m_Registry.emplace<Transform>(entity);
 		m_Registry.emplace<Hierarchy>(entity);
+
+		m_EntityOrder[entity] = m_NextOrder++;
+
 		return entity;
 	}
 
@@ -216,7 +219,59 @@ namespace CPURDR
 			}
 		}
 
+		std::sort(roots.begin(), roots.end(), [this](entt::entity a, entt::entity b) {
+		auto itA = m_EntityOrder.find(a);
+		auto itB = m_EntityOrder.find(b);
+		size_t orderA = (itA != m_EntityOrder.end()) ? itA->second : 0;
+		size_t orderB = (itB != m_EntityOrder.end()) ? itB->second : 0;
+		return orderA < orderB;
+	});
+
 		return roots;
+	}
+
+	void Scene::ReorderEntity(entt::entity entity, size_t newIndex)
+	{
+		if (!IsValidEntity(entity)) return;
+
+		size_t oldIndex = GetEntityOrder(entity);
+
+		for (auto& [e, order] : m_EntityOrder)
+		{
+			if (IsValidEntity(e))
+			{
+				if (oldIndex < newIndex) // Moving down in Hierarchy
+				{
+					if (order > oldIndex && order <= newIndex)
+					{
+						order--;
+					}
+				}
+				else if (oldIndex > newIndex) // Moving up in Hierarchy
+				{
+					if (order >= newIndex && order < oldIndex)
+					{
+						order++;
+					}
+				}
+			}
+		}
+
+		m_EntityOrder[entity] = newIndex;
+	}
+
+	size_t Scene::GetEntityOrder(entt::entity entity) const
+	{
+		auto it = m_EntityOrder.find(entity);
+		return it != m_EntityOrder.end()? it->second : 0;
+	}
+
+	void Scene::SetEntityOrder(entt::entity entity, size_t order)
+	{
+		if (IsValidEntity(entity))
+		{
+			m_EntityOrder[entity] = order;
+		}
 	}
 
 	void Scene::DestroyEntityRecursive(entt::entity entity)
