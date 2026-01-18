@@ -512,9 +512,23 @@ namespace CPURDR
             }
             else
             {
-                SelectEntity(entity, false);
+            	if (!IsEntitySelected(entity))
+            	{
+            		SelectEntity(entity, false);
+            	}
             }
         }
+
+    	if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left) && !isDragging)
+    	{
+    		ImGuiIO& io = ImGui::GetIO();
+    		bool multiSelect = io.KeyCtrl || io.KeyShift;
+
+    		if (!multiSelect && IsEntitySelected(entity) && m_SelectedEntities.size() > 1)
+    		{
+    			SelectEntity(entity, false);
+    		}
+    	}
 
         // Drag source
         if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
