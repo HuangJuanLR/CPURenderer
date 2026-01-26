@@ -123,6 +123,11 @@ void Graphics::Triangle(SDL_Renderer* renderer, glm::vec3 p0, glm::vec3 p1, glm:
 	}
 }
 
+inline float EdgeFunction(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& p)
+{
+	return (p.x - v0.x) * (v1.y - v0.y) - (p.y - v0.y) * (v1.x - v0.x);
+}
+
 void Graphics::Triangle(SDL_Renderer* renderer, glm::vec3 p0, glm::vec3 p1, glm::vec3 p2,
 	const int& width, const int& height, CPURDR::Texture2D_RFloat& depthBuffer)
 {
@@ -191,52 +196,55 @@ void Graphics::Triangle(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, const int& wid
 		std::min(bboxMax.y, (float)height - 1)
 	);
 
-	double area = SignedTriangleArea(p0, p1, p2);
-	if (std::abs(area) < 0.01) return;
+	double area = EdgeFunction(p0, p1, p2);
+	if (std::abs(area) < 0.00001) return;
 
 	// if (area > 0.0) return; // Backface culling
 
+	float A01 = p1.y - p0.y, B01 = p0.x - p1.x;  // for EdgeFunction(p0, p1, p)
+	float A12 = p2.y - p1.y, B12 = p1.x - p2.x;  // for EdgeFunction(p1, p2, p)
+	float A20 = p0.y - p2.y, B20 = p2.x - p0.x;  // for EdgeFunction(p2, p0, p)
+
+	float invArea = 1.0f / area;
+
 #pragma omp parallel for
-	for (int x = bboxMin.x; x <= bboxMax.x; x++)
+	for (int y = static_cast<int>(bboxMin.y); y <= static_cast<int>(bboxMax.y); y++)
 	{
-		for (int y = bboxMin.y; y <= bboxMax.y; y++)
+		// Compute edge values at the start of this scanline
+		glm::vec3 pRow(bboxMin.x, static_cast<float>(y), 0.0f);
+		float w0 = EdgeFunction(p1, p2, pRow);  // Barycentric weight for p0
+		float w1 = EdgeFunction(p2, p0, pRow);  // Barycentric weight for p1
+		float w2 = EdgeFunction(p0, p1, pRow);  // Barycentric weight for p2
+
+		for (int x = static_cast<int>(bboxMin.x); x <= static_cast<int>(bboxMax.x); x++)
 		{
-			// If PCA, PBC, PAB and ABC are all clock/couter-clockwise
-			// P is inside ABC
-			glm::vec3 p = glm::vec3(x, y, 0);
-			double pbc = SignedTriangleArea(p, p1, p2) / area;
-			double pca = SignedTriangleArea(p, p2, p0) / area;
-			double pab = SignedTriangleArea(p, p0, p1) / area;
+			// Point is inside if all edge functions have the same sign as the triangle area
+			// For CCW triangles (positive area): all weights should be >= 0
+			// For CW triangles (negative area): all weights should be <= 0
+			bool inside = (area > 0) ? (w0 >= 0 && w1 >= 0 && w2 >= 0)
+									 : (w0 <= 0 && w1 <= 0 && w2 <= 0);
 
-			if (pbc < 0 || pca < 0 || pab < 0) continue;
-
-			float depth = static_cast<float>(pbc * p0.z + pca * p1.z + pab * p2.z);
-
-			if (depth < 0.0f || depth > 1.0f) continue;
-
-			// ============================
-			// Standard-Z
-			// ============================
-			if (depth < depthBuffer(x, y))
+			if (inside)
 			{
-				depthBuffer(x, y) = depth;
+				// Normalize to get barycentric coordinates
+				float bary0 = w0 * invArea;
+				float bary1 = w1 * invArea;
+				float bary2 = w2 * invArea;
 
-				uint8_t depthColor = static_cast<uint8_t>(depth * 255.0f);
-				uint32_t finalColor = (depthColor << 24) | (depthColor << 16) | (depthColor << 8) | 255;
-				colorBuffer(x, y) = color;
+				float depth = bary0 * p0.z + bary1 * p1.z + bary2 * p2.z;
+
+				// depth > depthBuffer(x, y) for Reversed-Z
+				if (depth >= 0.0f && depth <= 1.0f && depth < depthBuffer(x, y))
+				{
+					depthBuffer(x, y) = depth;
+					colorBuffer(x, y) = color;
+				}
 			}
 
-			// ============================
-			// Reversed-Z
-			// ============================
-			// if (depth > depthBuffer(x, y))
-			// {
-			// 	depthBuffer(x, y) = depth;
-			//
-			// 	uint8_t depthColor = static_cast<uint8_t>(depth * 255.0f);
-			// 	uint32_t finalColor = (depthColor << 24) | (depthColor << 16) | (depthColor << 8) | 255;
-			// 	colorBuffer(x, y) = color;
-			// }
+			// Increment edge values for next pixel (stepping in X)
+			w0 += A12;
+			w1 += A20;
+			w2 += A01;
 		}
 	}
 }
