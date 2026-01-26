@@ -211,7 +211,7 @@ void Graphics::Triangle(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, const int& wid
 	for (int y = static_cast<int>(bboxMin.y); y <= static_cast<int>(bboxMax.y); y++)
 	{
 		// Compute edge values at the start of this scanline
-		glm::vec3 pRow(bboxMin.x, static_cast<float>(y), 0.0f);
+		glm::vec3 pRow(static_cast<float>((int)bboxMin.x), static_cast<float>(y), 0.0f);
 		float w0 = EdgeFunction(p1, p2, pRow);  // Barycentric weight for p0
 		float w1 = EdgeFunction(p2, p0, pRow);  // Barycentric weight for p1
 		float w2 = EdgeFunction(p0, p1, pRow);  // Barycentric weight for p2
