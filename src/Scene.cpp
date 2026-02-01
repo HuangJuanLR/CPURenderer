@@ -3,8 +3,11 @@
 #include "ecs/components/MeshRenderer.h"
 #include "ecs/components/NameTag.h"
 #include "ecs/components/Transform.h"
-#include "MeshLoader.h"
 #include "ecs/components/Hierarchy.h"
+#include "ecs/components/Light.h"
+#include "render/MaterialManager.h"
+#include "Primitives.h"
+#include "MeshLoader.h"
 #include "plog/Log.h"
 
 namespace CPURDR
@@ -57,6 +60,25 @@ namespace CPURDR
 		entt::entity entity = CreateEntity(name);
 		m_Registry.emplace<MeshFilter>(entity, meshFilter);
 		m_Registry.emplace<MeshRenderer>(entity);
+		return entity;
+	}
+
+	entt::entity Scene::CreateDirectionalLightEntity(const std::string& name)
+	{
+		entt::entity entity = CreateEntity(name);
+
+		m_Registry.emplace<DirectionalLight>(entity);
+
+		Mesh sphereMesh = Primitives::Sphere(0.15f, 12, 6);
+		m_Registry.emplace<MeshFilter>(entity, std::vector<Mesh>{sphereMesh});
+
+		MeshRenderer renderer;
+		renderer.materialId = MaterialManager::GetInstance().GetLightGizmoMaterial();
+		m_Registry.emplace<MeshRenderer>(entity, renderer);
+
+		auto& transform = m_Registry.get<Transform>(entity);
+		transform.SetRotationEuler(-45.0f, 0.0f, 0.0f);
+
 		return entity;
 	}
 

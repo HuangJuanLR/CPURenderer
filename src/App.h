@@ -6,6 +6,7 @@
 #include "entt.hpp"
 #include "Model.h"
 #include "assimp/scene.h"
+#include "render/RenderPipeline.h"
 #include "render/Window.h"
 
 namespace CPURDR
@@ -56,7 +57,7 @@ namespace CPURDR
 		bool success = true;
 	private:
 		std::shared_ptr<Scene> m_Scene;
-		std::unique_ptr<RenderingSystem> m_RenderingSystem;
+		std::unique_ptr<RenderPipeline> m_RenderPipeline;
 		std::unique_ptr<TransformSystem> m_TransformSystem;
 
 		std::unique_ptr<Window> m_RenderWindow;

@@ -1,23 +1,53 @@
 #pragma once
 #include <cstdint>
+#include <variant>
 
 namespace CPURDR
 {
+	using PropertyValue = std::variant<int, float, glm::vec2, glm::vec3, glm::vec4, uint32_t>;
+
 	struct MeshRenderer
 	{
 		bool enabled = true;
 		bool castShadow = true;
 		bool receiveShadows = true;
-
-		uint32_t tint = 0xFFFFFFFF;
-		float alpha = 1.0f;
-
 		bool backfaceCulling = true;
 
+		uint32_t materialId = 1;
 
-		void SetTintRGB(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255)
+		std::unordered_map<std::string, PropertyValue> propertyOverrides;
+
+		bool HasOverride(const std::string& name) const
 		{
-			tint = (r << 24) | (g << 16) | (b << 8) | a;
+			return propertyOverrides.contains(name);
+		}
+
+		template<typename T>
+		void SetOverride(const std::string& name, const T& value)
+		{
+			propertyOverrides[name] = value;
+		}
+
+		template<typename T>
+		T GetOverride(const std::string& name, const T& defaultValue = T{}) const
+		{
+			auto it = propertyOverrides.find(name);
+			if (it != propertyOverrides.end())
+			{
+				if (auto* val = std::get_if<T>(&it->second))
+					return *val;
+			}
+			return defaultValue;
+		}
+
+		void ClearOverride(const std::string& name)
+		{
+			propertyOverrides.erase(name);
+		}
+
+		void ClearAllOverrides()
+		{
+			propertyOverrides.clear();
 		}
 	};
 }

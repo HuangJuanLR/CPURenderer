@@ -17,8 +17,9 @@
 #include "Primitives.h"
 #include "ecs/components/Hierarchy.h"
 #include "ecs/components/NameTag.h"
-#include "ecs/systems/RenderingSystem.h"
 #include "ecs/systems/TransformSystem.h"
+#include "render/MaterialManager.h"
+#include "render/ShaderManager.h"
 
 namespace CPURDR
 {
@@ -68,7 +69,11 @@ namespace CPURDR
 			PLOG_INFO << "SDL3 Initialized" << std::endl;
 
 		m_Scene = SceneManager::GetInstance().CreateScene("Main Scene");
-		m_RenderingSystem = std::make_unique<RenderingSystem>();
+
+		ShaderManager::GetInstance().Initialize();
+		MaterialManager::GetInstance().Initialize();
+		m_RenderPipeline = std::make_unique<RenderPipeline>();
+
 		m_TransformSystem = std::make_unique<TransformSystem>();
 
 		m_Camera = std::make_unique<Camera>(
@@ -221,7 +226,7 @@ namespace CPURDR
 			viewport.height = m_RenderContext->GetFramebufferHeight();
 			m_RenderContext->SetViewport(viewport);
 
-			m_RenderingSystem->Render(m_Scene->GetRegistry(), m_RenderContext.get(), *m_Camera);
+			m_RenderPipeline->Render(m_Scene->GetRegistry(), m_RenderContext.get(), *m_Camera);
 
 			Gizmos::DrawAxis(m_RenderContext.get(), *m_Camera, 2.0f, 0.03f);
 
@@ -336,6 +341,29 @@ namespace CPURDR
 
 						ImGui::EndMenu();
 					}
+
+					ImGui::Separator();
+
+					if (ImGui::BeginMenu("Light"))
+					{
+						glm::vec3 spawnPosition = glm::vec3(0);
+
+						if (ImGui::MenuItem("Directional Light"))
+						{
+							entt::entity entity = m_Scene->CreateDirectionalLightEntity("Directional Light");
+							auto& transform = m_Scene->GetRegistry().get<Transform>(entity);
+							transform.position = spawnPosition;
+						}
+
+						ImGui::BeginDisabled();
+						ImGui::MenuItem("Point Light");
+						ImGui::MenuItem("Spot Light");
+						ImGui::MenuItem("Area Light");
+						ImGui::EndDisabled();
+
+						ImGui::EndMenu();
+					}
+
 					ImGui::EndMenu();
 				}
 
@@ -1073,6 +1101,19 @@ namespace CPURDR
 				if (!registry.all_of<Transform>(entity)) allHaveTransform = false;
 				if (!registry.all_of<MeshRenderer>(entity)) allHaveMeshRenderer = false;
 				if (!registry.all_of<MeshFilter>(entity)) allHaveMeshFilter = false;
+
+				if (registry.all_of<DirectionalLight>(entity))
+				{
+					auto& light = registry.get<DirectionalLight>(entity);
+
+					if (ImGui::CollapsingHeader("Directional Light", ImGuiTreeNodeFlags_DefaultOpen))
+					{
+						ImGui::Checkbox("Enabled", &light.enabled);
+						ImGui::ColorEdit3("Color", glm::value_ptr(light.color));
+						ImGui::DragFloat("Intensity", &light.intensity, 0.1f, 0.0f, 10.0f);
+						ImGui::Spacing();
+					}
+				}
 			}
 
 			if (allHaveTransform)

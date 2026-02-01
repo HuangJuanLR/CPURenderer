@@ -2,6 +2,7 @@
 #include <entt.hpp>
 #include "MetaReflection.h"
 #include "ecs/components/Hierarchy.h"
+#include "ecs/components/Light.h"
 #include "ecs/components/MeshFilter.h"
 #include "ecs/components/MeshRenderer.h"
 #include "ecs/components/NameTag.h"
@@ -117,18 +118,6 @@ namespace CPURDR
 			.custom<FieldMetadata>(FieldMetadata{
 				.displayName = "Receive Shadows"
 			})
-		.data<&MeshRenderer::tint>("tint"_hs)
-			.custom<FieldMetadata>(FieldMetadata{
-				.displayName = "Tint",
-				.isColor = true
-			})
-		.data<&MeshRenderer::alpha>("alpha"_hs)
-			.custom<FieldMetadata>(FieldMetadata{
-				.displayName = "Alpha",
-				.speed = 0.01f,
-				.minValue = 0.0f,
-				.maxValue = 1.0f
-			})
 		.data<&MeshRenderer::backfaceCulling>("backfaceCulling"_hs)
 			.custom<FieldMetadata>(FieldMetadata{
 				.displayName = "Backface Culling"
@@ -144,5 +133,391 @@ namespace CPURDR
 			.visibleInInspector = false,
 			.defaultOpen = false
 		});
+
+		// ==================================
+		// DirectionalLight
+		// ==================================
+		entt::meta_factory<DirectionalLight>{}
+		.type("DirectionalLight"_hs)
+		.custom<ComponentMetadata>(ComponentMetadata{
+		    .displayName = "Directional Light",
+		    .visibleInInspector = true,
+		    .defaultOpen = true
+		})
+		.data<&DirectionalLight::enabled>("enabled"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Enabled",
+		        .editable = true,
+		        .visible = true
+		    })
+		.data<&DirectionalLight::color>("color"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Color",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 0.01f,
+		        .minValue = 0.0f,
+		        .maxValue = 1.0f
+		    })
+		.data<&DirectionalLight::intensity>("intensity"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Intensity",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 0.1f,
+		        .minValue = 0.0f,
+		        .maxValue = 100.0f
+		    })
+		.data<&DirectionalLight::castShadows>("castShadows"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Cast Shadows",
+		        .editable = true,
+		        .visible = true
+		    })
+		.data<&DirectionalLight::shadowBias>("shadowBias"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Shadow Bias",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 0.001f,
+		        .minValue = 0.0f,
+		        .maxValue = 0.1f
+		    })
+		.data<&DirectionalLight::shadowStrength>("shadowStrength"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Shadow Strength",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 0.01f,
+		        .minValue = 0.0f,
+		        .maxValue = 1.0f
+		    })
+		.data<&DirectionalLight::shadowCascades>("shadowCascades"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Shadow Cascades",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 1.0f,
+		        .minValue = 1.0f,
+		        .maxValue = 8.0f
+		    })
+		.data<&DirectionalLight::shadowDistance>("shadowDistance"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Shadow Distance",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 1.0f,
+		        .minValue = 1.0f,
+		        .maxValue = 1000.0f
+		    });
+
+		// ==================================
+		// PointLight
+		// ==================================
+		entt::meta_factory<PointLight>{}
+		.type("PointLight"_hs)
+		.custom<ComponentMetadata>(ComponentMetadata{
+		    .displayName = "Point Light",
+		    .visibleInInspector = true,
+		    .defaultOpen = true
+		})
+		.data<&PointLight::enabled>("enabled"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Enabled",
+		        .editable = true,
+		        .visible = true
+		    })
+		.data<&PointLight::color>("color"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Color",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 0.01f,
+		        .minValue = 0.0f,
+		        .maxValue = 1.0f
+		    })
+		.data<&PointLight::intensity>("intensity"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Intensity",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 0.1f,
+		        .minValue = 0.0f,
+		        .maxValue = 100.0f
+		    })
+		.data<&PointLight::range>("range"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Range",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 0.1f,
+		        .minValue = 0.0f,
+		        .maxValue = 1000.0f
+		    })
+		.data<&PointLight::constantAttenuation>("constantAttenuation"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Constant Attenuation",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 0.01f,
+		        .minValue = 0.0f,
+		        .maxValue = 10.0f
+		    })
+		.data<&PointLight::linearAttenuation>("linearAttenuation"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Linear Attenuation",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 0.001f,
+		        .minValue = 0.0f,
+		        .maxValue = 1.0f
+		    })
+		.data<&PointLight::quadraticAttenuation>("quadraticAttenuation"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Quadratic Attenuation",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 0.001f,
+		        .minValue = 0.0f,
+		        .maxValue = 1.0f
+		    })
+		.data<&PointLight::castShadows>("castShadows"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Cast Shadows",
+		        .editable = true,
+		        .visible = true
+		    })
+		.data<&PointLight::shadowBias>("shadowBias"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Shadow Bias",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 0.001f,
+		        .minValue = 0.0f,
+		        .maxValue = 0.1f
+		    })
+		.data<&PointLight::shadowStrength>("shadowStrength"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Shadow Strength",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 0.01f,
+		        .minValue = 0.0f,
+		        .maxValue = 1.0f
+		    });
+
+		// ==================================
+		// SpotLight
+		// ==================================
+		entt::meta_factory<SpotLight>{}
+		.type("SpotLight"_hs)
+		.custom<ComponentMetadata>(ComponentMetadata{
+		    .displayName = "Spot Light",
+		    .visibleInInspector = true,
+		    .defaultOpen = true
+		})
+		.data<&SpotLight::enabled>("enabled"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Enabled",
+		        .editable = true,
+		        .visible = true
+		    })
+		.data<&SpotLight::color>("color"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Color",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 0.01f,
+		        .minValue = 0.0f,
+		        .maxValue = 1.0f
+		    })
+		.data<&SpotLight::intensity>("intensity"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Intensity",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 0.1f,
+		        .minValue = 0.0f,
+		        .maxValue = 100.0f
+		    })
+		.data<&SpotLight::range>("range"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Range",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 0.1f,
+		        .minValue = 0.0f,
+		        .maxValue = 1000.0f
+		    })
+		.data<&SpotLight::innerConeAngle>("innerConeAngle"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Inner Cone Angle",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 0.5f,
+		        .minValue = 0.0f,
+		        .maxValue = 90.0f
+		    })
+		.data<&SpotLight::outerConeAngle>("outerConeAngle"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Outer Cone Angle",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 0.5f,
+		        .minValue = 0.0f,
+		        .maxValue = 90.0f
+		    })
+		.data<&SpotLight::constantAttenuation>("constantAttenuation"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Constant Attenuation",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 0.01f,
+		        .minValue = 0.0f,
+		        .maxValue = 10.0f
+		    })
+		.data<&SpotLight::linearAttenuation>("linearAttenuation"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Linear Attenuation",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 0.001f,
+		        .minValue = 0.0f,
+		        .maxValue = 1.0f
+		    })
+		.data<&SpotLight::quadraticAttenuation>("quadraticAttenuation"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Quadratic Attenuation",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 0.001f,
+		        .minValue = 0.0f,
+		        .maxValue = 1.0f
+		    })
+		.data<&SpotLight::castShadows>("castShadows"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Cast Shadows",
+		        .editable = true,
+		        .visible = true
+		    })
+		.data<&SpotLight::shadowBias>("shadowBias"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Shadow Bias",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 0.001f,
+		        .minValue = 0.0f,
+		        .maxValue = 0.1f
+		    })
+		.data<&SpotLight::shadowStrength>("shadowStrength"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Shadow Strength",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 0.01f,
+		        .minValue = 0.0f,
+		        .maxValue = 1.0f
+		    });
+
+		// ==================================
+		// AreaLight
+		// ==================================
+		entt::meta_factory<AreaLight>{}
+		.type("AreaLight"_hs)
+		.custom<ComponentMetadata>(ComponentMetadata{
+		    .displayName = "Area Light",
+		    .visibleInInspector = true,
+		    .defaultOpen = true
+		})
+		.data<&AreaLight::enabled>("enabled"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Enabled",
+		        .editable = true,
+		        .visible = true
+		    })
+		.data<&AreaLight::color>("color"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Color",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 0.01f,
+		        .minValue = 0.0f,
+		        .maxValue = 1.0f
+		    })
+		.data<&AreaLight::intensity>("intensity"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Intensity",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 0.1f,
+		        .minValue = 0.0f,
+		        .maxValue = 100.0f
+		    })
+		.data<&AreaLight::width>("width"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Width",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 0.1f,
+		        .minValue = 0.01f,
+		        .maxValue = 100.0f
+		    })
+		.data<&AreaLight::height>("height"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Height",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 0.1f,
+		        .minValue = 0.01f,
+		        .maxValue = 100.0f
+		    })
+		.data<&AreaLight::twoSided>("twoSided"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Two Sided",
+		        .editable = true,
+		        .visible = true
+		    })
+		.data<&AreaLight::range>("range"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Range",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 0.1f,
+		        .minValue = 0.0f,
+		        .maxValue = 1000.0f
+		    })
+		.data<&AreaLight::sampleCount>("sampleCount"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Sample Count",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 1.0f,
+		        .minValue = 1.0f,
+		        .maxValue = 128.0f
+		    })
+		.data<&AreaLight::castShadows>("castShadows"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Cast Shadows",
+		        .editable = true,
+		        .visible = true
+		    })
+		.data<&AreaLight::shadowBias>("shadowBias"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Shadow Bias",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 0.001f,
+		        .minValue = 0.0f,
+		        .maxValue = 0.1f
+		    })
+		.data<&AreaLight::shadowStrength>("shadowStrength"_hs)
+		    .custom<FieldMetadata>(FieldMetadata{
+		        .displayName = "Shadow Strength",
+		        .editable = true,
+		        .visible = true,
+		        .speed = 0.01f,
+		        .minValue = 0.0f,
+		        .maxValue = 1.0f
+		    });
 	}
 }

@@ -19,6 +19,8 @@ namespace CPURDR
 		entt::entity CreateMeshEntity(const std::string& name, const std::string& meshPath);
 		entt::entity CreateMeshEntity(const std::string& name, const MeshFilter& meshFilter);
 
+		entt::entity CreateDirectionalLightEntity(const std::string& name = "Directional Light");
+
 		entt::registry& GetRegistry(){return m_Registry;}
 		const entt::registry& GetRegistry() const {return m_Registry;}
 
