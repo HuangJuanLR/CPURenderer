@@ -52,7 +52,7 @@ namespace CPURDR
 
 		for (const auto& mesh: meshFilter.meshes)
 		{
-			DrawMesh(mesh, modelMatrix, viewMatrix, projectionMatrix, context, meshRenderer.tint);
+			DrawMesh(mesh, modelMatrix, viewMatrix, projectionMatrix, context, 0xFFFFFFFF);
 		}
 	}
 

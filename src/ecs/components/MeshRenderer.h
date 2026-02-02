@@ -8,6 +8,7 @@ namespace CPURDR
 
 	struct MeshRenderer
 	{
+	public:
 		bool enabled = true;
 		bool castShadow = true;
 		bool receiveShadows = true;

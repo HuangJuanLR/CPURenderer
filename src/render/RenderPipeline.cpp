@@ -1,5 +1,7 @@
 #include "RenderPipeline.h"
 #include <algorithm>
+
+#include "EffectiveMaterial.h"
 #include "plog/Log.h"
 #include "ShaderManager.h"
 #include "MaterialManager.h"
@@ -68,17 +70,20 @@ namespace CPURDR
 
 			if (!meshRenderer.enabled) continue;
 
-			const Material* material = MaterialManager::GetInstance().GetMaterial(meshRenderer.materialId);
-			if (material == nullptr)
+			const Material* baseMaterial = MaterialManager::GetInstance().GetMaterial(meshRenderer.materialId);
+			if (baseMaterial == nullptr)
 			{
-				material = MaterialManager::GetInstance().GetMaterial(
+				baseMaterial = MaterialManager::GetInstance().GetMaterial(
 					MaterialManager::GetInstance().GetDefaultMaterial());
 			}
-			if (!material) continue;
+			if (!baseMaterial) continue;
+
+			// Create effective material with overrides
+			Material effectiveMaterial = CreateEffectiveMaterial(*baseMaterial, meshRenderer);
 
 			for (const auto& mesh : meshFilter.meshes)
 			{
-				DrawMesh(mesh, *material, transform, context);
+				DrawMesh(mesh, effectiveMaterial, transform, context);
 			}
 		}
 	}

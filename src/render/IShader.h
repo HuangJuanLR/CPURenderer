@@ -17,6 +17,7 @@ namespace CPURDR
 		Int,
 		Vec2,
 		Vec3,
+		Vec4,
 		Color,
 		Texture,
 		Bool

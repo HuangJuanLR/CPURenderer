@@ -11,6 +11,7 @@
 #include "imgui_impl_sdlrenderer3.h"
 #include "imgui_internal.h"
 #include "Log.h"
+#include "MaterialPropertyInspector.h"
 #include "MetaInspector.h"
 #include "render/Context.h"
 #include "Scene.h"
@@ -1062,7 +1063,38 @@ namespace CPURDR
 			if (registry.all_of<MeshRenderer>(entity))
 			{
 				auto& meshRenderer = registry.get<MeshRenderer>(entity);
-				MetaInspector::DrawComponentInspector(meshRenderer);
+
+				if (ImGui::CollapsingHeader("Mesh Renderer", ImGuiTreeNodeFlags_DefaultOpen))
+				{
+					ImGui::Checkbox("Enabled", &meshRenderer.enabled);
+					ImGui::Checkbox("Cast Shadows", &meshRenderer.castShadow);
+					ImGui::Checkbox("Receive Shadows", &meshRenderer.receiveShadows);
+					ImGui::Checkbox("Backface Culling", &meshRenderer.backfaceCulling);
+
+					ImGui::Spacing();
+					ImGui::Separator();
+					ImGui::Spacing();
+
+					if (ImGui::BeginCombo("Material",
+						MaterialManager::GetInstance().GetMaterial(meshRenderer.materialId)?
+						MaterialManager::GetInstance().GetMaterial(meshRenderer.materialId)->name.c_str()
+							: "None"))
+					{
+						if (ImGui::Selectable("Default", meshRenderer.materialId == 1))
+						{
+							meshRenderer.materialId = 1;
+							meshRenderer.ClearAllOverrides();
+						}
+						ImGui::EndCombo();
+					}
+
+					ImGui::Spacing();
+				}
+
+				if (ImGui::CollapsingHeader("Material Properties", ImGuiTreeNodeFlags_DefaultOpen))
+				{
+					MaterialPropertyInspector::Draw(meshRenderer);
+				}
 			}
 
 			if (auto* meshFilter = registry.try_get<MeshFilter>(entity))
