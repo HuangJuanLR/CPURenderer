@@ -22,6 +22,10 @@ namespace CPURDR
 				return false;
 			}
 
+			changed |= DrawShaderSelector(renderer);
+
+			ImGui::Separator();
+
 			IShader* shader = ShaderManager::GetInstance().GetShader(baseMaterial->shaderId);
 			if (!shader)
 			{
@@ -55,6 +59,69 @@ namespace CPURDR
 			for (const auto& prop: properties)
 			{
 				changed |= DrawProperty(prop, *baseMaterial, renderer);
+			}
+
+			return changed;
+		}
+
+		static bool DrawShaderSelector(MeshRenderer& renderer)
+		{
+			bool changed = false;
+
+			Material* baseMaterial = MaterialManager::GetInstance().GetMaterial(renderer.materialId);
+			if (!baseMaterial) return false;
+
+			IShader* currentShader = ShaderManager::GetInstance().GetShader(baseMaterial->shaderId);
+			const char* currentShaderName = currentShader? currentShader->GetName().c_str() : "Invalid shader";
+
+			ImGui::Text("Shader: ");
+			ImGui::SameLine();
+
+			if (ImGui::BeginCombo("##ShaderSelect", currentShaderName))
+			{
+				const auto& shaders = ShaderManager::GetInstance().GetAllShaders();
+
+				if (shaders.empty())
+				{
+					ImGui::TextDisabled("No shaders available");
+					ImGui::EndCombo();
+					return false;
+				}
+
+				for (IShader* shader : shaders)
+				{
+					if (!shader) continue;
+
+					bool isSelected = (currentShader != nullptr && currentShader->GetId() == shader->GetId());
+
+					if (ImGui::Selectable(shader->GetName().c_str(), isSelected))
+					{
+						if (!isSelected)
+						{
+							baseMaterial->shaderId = shader->GetId();
+
+							renderer.ClearAllOverrides();
+
+							baseMaterial->properties.clear();
+							for (const auto& prop: shader->GetProperties())
+							{
+								std::visit([&](auto&& val)
+								{
+									baseMaterial->properties[prop.name] = val;
+								}, prop.defaultValue);
+							}
+
+							changed = true;
+						}
+					}
+
+					if (isSelected)
+					{
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+
+				ImGui::EndCombo();
 			}
 
 			return changed;
