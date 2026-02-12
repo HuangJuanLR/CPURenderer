@@ -24,8 +24,8 @@ namespace CPURDR
 		void SetupFrameUniforms(entt::registry& registry, const Camera& camera, float aspectRatio);
 		void RenderOpaqueObject(entt::registry& registry, Context* context);
 
-		void DrawMesh(const Mesh& mesh, const Material& material, const Transform& transform, Context* context);
-		void RasterizeTriangle(
+		void DrawMesh(const Mesh& mesh, const Material& material, const Transform& transform, Context* context) const;
+		static void RasterizeTriangle(
 			const Varyings& v0, const Varyings& v1, const Varyings& v2,
 			const IShader* shader, const ShaderUniforms& uniforms,
 			int width, int height,

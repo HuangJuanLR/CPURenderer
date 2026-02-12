@@ -102,7 +102,7 @@ namespace CPURDR
 	}
 
 	void RenderPipeline::DrawMesh(const Mesh& mesh, const Material& material,
-		const Transform& transform, Context* context)
+		const Transform& transform, Context* context) const
 	{
 		ObjectUniforms objectUniforms;
 		objectUniforms.objectToWorld = transform.GetWorldModelMatrix();
@@ -168,16 +168,27 @@ namespace CPURDR
 
 			if (behindCount == 0)
 			{
-				v0.positionCS /= v0.positionCS.w;
-				v1.positionCS /= v1.positionCS.w;
-				v2.positionCS /= v2.positionCS.w;
+				// Store invW for perspective correction
+				float invW0 = 1.0f / v0.positionCS.w;
+				float invW1 = 1.0f / v1.positionCS.w;
+				float invW2 = 1.0f / v2.positionCS.w;
+
+				v0.positionCS *= invW0;
+				v1.positionCS *= invW1;
+				v2.positionCS *= invW2;
+
+				v0.positionCS.w = invW0;
+				v1.positionCS.w = invW1;
+				v2.positionCS.w = invW2;
 
 				bool clipX = (v0.positionCS.x < -1 && v1.positionCS.x < -1 && v2.positionCS.x < -1) ||
 							 (v0.positionCS.x > 1 && v1.positionCS.x > 1 && v2.positionCS.x > 1);
 				bool clipY = (v0.positionCS.y < -1 && v1.positionCS.y < -1 && v2.positionCS.y < -1) ||
 							 (v0.positionCS.y > 1 && v1.positionCS.y > 1 && v2.positionCS.y > 1);
+				bool clipZ = (v0.positionCS.z < 0 && v1.positionCS.z < 0 && v2.positionCS.z < 0) ||
+							 (v0.positionCS.z > 1 && v1.positionCS.z > 1 && v2.positionCS.z > 1);
 
-				if (clipX || clipY) continue;
+				if (clipX || clipY || clipZ) continue;
 
 				RasterizeTriangle(v0, v1, v2, shader, uniforms, width, height,
 					*depthBuffer, *colorBuffer);
@@ -238,7 +249,11 @@ namespace CPURDR
 
             // Perspective divide for clipped vertices
             auto perspectiveDivide = [](Varyings& v) {
-                v.positionCS /= v.positionCS.w;
+
+            	// Store invW for perspective correction
+            	float invW = 1.0f / v.positionCS.w;
+            	v.positionCS *= invW;
+            	v.positionCS.w = invW;
             };
 
             if (clipCount == 3)
@@ -284,69 +299,202 @@ namespace CPURDR
 				);
 		};
 
-		glm::vec3 s0 = toScreen(v0.positionCS);
-		glm::vec3 s1 = toScreen(v1.positionCS);
-		glm::vec3 s2 = toScreen(v2.positionCS);
+		// keep a copy for later swap operation
+		Varyings pv0 = v0;
+		Varyings pv1 = v1;
+		Varyings pv2 = v2;
 
-		// Bounding box
-		int minX = std::max(0, (int)std::floor(std::min({s0.x, s1.x, s2.x})));
-		int maxX = std::min(width - 1, (int)std::ceil(std::max({s0.x, s1.x, s2.x})));
-		int minY = std::max(0, (int)std::floor(std::min({s0.y, s1.y, s2.y})));
-		int maxY = std::min(height - 1, (int)std::ceil(std::max({s0.y, s1.y, s2.y})));
+		glm::vec3 s0 = toScreen(pv0.positionCS);
+		glm::vec3 s1 = toScreen(pv1.positionCS);
+		glm::vec3 s2 = toScreen(pv2.positionCS);
 
 		float area = EdgeFunction(s0, s1, s2);
-		if (std::abs(area) < 0.0001f) return;
+		if (std::abs(area) < 1e-5f) return;
+		//
+		// if (area < 0.0f)
+		// {
+		// 	return;
+		// }
+
+		// Bounding box, adjust for pixel center sampling
+		int minX = std::max(0, (int)std::ceil(std::min({s0.x, s1.x, s2.x}) - 0.5f));
+		int maxX = std::min(width - 1, (int)std::floor(std::max({s0.x, s1.x, s2.x}) - 0.5f));
+		int minY = std::max(0, (int)std::ceil(std::min({s0.y, s1.y, s2.y}) - 0.5));
+		int maxY = std::min(height - 1, (int)std::floor(std::max({s0.y, s1.y, s2.y}) - 0.5));
+
+		if (minX > maxX || minY > maxY) return;
 
 		float invArea = 1.0f / area;
+		const float EPS = 1e-5f;
 
-		float A01 = s1.y - s0.y;
-		float A12 = s2.y - s1.y;
-		float A20 = s0.y - s2.y;
-
-		for (int y = minY; y <= maxY; y++)
+		// E(x, y) = A * x + B * y + C
+		struct EdgeEquation
 		{
-			glm::vec3 pRow((float)minX, (float)y, 0.0f);
-			float e0 = EdgeFunction(s1, s2, pRow);
-			float e1 = EdgeFunction(s2, s0, pRow);
-			float e2 = EdgeFunction(s0, s1, pRow);
+			float A, B, C;
+			bool topLeft;
+		};
 
-			for (int x = minX; x <= maxX; x++)
+		auto makeEdgeEquation = [&](const glm::vec3& a, const glm::vec3& b) -> EdgeEquation
+		{
+			EdgeEquation e;
+			e.A = b.y - a.y;
+			e.B = a.x - b.x;
+			e.C = b.x * a.y - a.x * b.y;
+
+			// Top-Left rule
+			// A > 0 means y going down for CCW triangle -> left edge
+			// A <= EPS && e.B > 0 -> top edge
+			e.topLeft = (e.A > 0 || (std::abs(e.A) <= EPS && e.B > 0));
+			return e;
+		};
+
+		//  Evaluate edge equation at a given point
+		auto eval = [](const EdgeEquation& e, float x, float y) -> float
+		{
+			return e.A * x + e.B * y + e.C;
+		};
+
+		// Test is inside the triangle
+		auto isInside = [&](float edgeValue, bool topLeft) -> bool
+		{
+			// return (edgeValue > EPS) || (std::abs(edgeValue) <= EPS && topLeft);
+			return (area > 0)? (edgeValue >= EPS || (std::abs(edgeValue) <= EPS && topLeft)) :
+								(edgeValue <= -EPS || (std::abs(edgeValue) <= EPS && topLeft));
+		};
+
+		auto packColor = [](const glm::vec4& c) -> uint32_t
+		{
+			const glm::vec4 clamped = glm::clamp(c, 0.0f, 1.0f);
+			uint8_t r = (uint8_t)(clamped.r * 255.0f);
+			uint8_t g = (uint8_t)(clamped.g * 255.0f);
+			uint8_t b = (uint8_t)(clamped.b * 255.0f);
+			uint8_t a = (uint8_t)(clamped.a * 255.0f);
+			return r << 24 | g << 16 | b << 8 | a;
+		};
+
+		const EdgeEquation e0eq = makeEdgeEquation(s1, s2);
+		const EdgeEquation e1eq = makeEdgeEquation(s2, s0);
+		const EdgeEquation e2eq = makeEdgeEquation(s0, s1);
+
+		// offset 0.5f to sample pixel center
+		const float startX = (float)minX + 0.5f;
+
+
+		// process in 2x2 blocks
+		for (int by = minY; by <= maxY; by+=2)
+		{
+			const float py = (float)by + 0.5f;
+
+			// Evaluate each edge at the first lane of the row
+			float e0Row = eval(e0eq, startX, py);
+			float e1Row = eval(e1eq, startX, py);
+			float e2Row = eval(e2eq, startX, py);
+
+			for (int bx = minX; bx <= maxX; bx+=2)
 			{
-				// area > 0 for CCW triangle
-				bool inside = (area > 0)? (e0 >= 0 && e1 >= 0 && e2 >= 0)
-				: (e0 <= 0 && e1 <= 0 && e2 <= 0);
-
-				if (inside)
+				const glm::vec2 p[4] =
 				{
-					float b0 = e0 * invArea;
-					float b1 = e1 * invArea;
-					float b2 = e2 * invArea;
+					glm::vec2(bx, by),
+					glm::vec2(bx + 1, by),
+					glm::vec2(bx, by + 1),
+					glm::vec2(bx + 1, by + 1)
+				};
 
-					float depth = b0 * s0.z + b1 * s1.z + b2 * s2.z;
+				const bool valid[4] =
+				{
+					p[0].x <= maxX && p[0].y <= maxY,
+					p[1].x <= maxX && p[1].y <= maxY,
+					p[2].x <= maxX && p[2].y <= maxY,
+					p[3].x <= maxX && p[3].y <= maxY
+				};
 
-					if (depth < depthBuffer(x, y))
-					{
-						depthBuffer(x, y) = depth;
+				// Increment edge value
+				const float e0Lane[4] =
+				{
+					e0Row,
+					e0Row + e0eq.A,
+					e0Row + e0eq.B,
+					e0Row + e0eq.A + e0eq.B
+				};
 
-						Varyings i;
-						i.positionWS = b0 * v0.positionWS + b1 * v1.positionWS + b2 * v2.positionWS;
-						i.normalWS = glm::normalize(b0 * v0.normalWS + b1 * v1.normalWS + b2 * v2.normalWS);
-						i.uv = b0 * v0.uv + b1 * v1.uv + b2 * v2.uv;
+				const float e1Lane[4] =
+				{
+					e1Row,
+					e1Row + e1eq.A,
+					e1Row + e1eq.B,
+					e1Row + e1eq.A + e1eq.B
+				};
 
-						glm::vec4 color = shader->Fragment(i, uniforms);
+				const float e2Lane[4] =
+				{
+					e2Row,
+					e2Row + e2eq.A,
+					e2Row + e2eq.B,
+					e2Row + e2eq.A + e2eq.B
+				};
 
-						uint8_t r = (uint8_t)(color.r * 255.0f);
-						uint8_t g = (uint8_t)(color.g * 255.0f);
-						uint8_t b = (uint8_t)(color.b * 255.0f);
-						uint8_t a = (uint8_t)(color.a * 255.0f);
+				bool anyCovered = false;
+				bool covered[4] = {false, false, false, false};
 
-						colorBuffer(x, y) = (r << 24) | (g << 16) | (b << 8) | a;
-					}
+				//
+				for (int lane = 0; lane < 4; lane++)
+				{
+					if (!valid[lane]) continue;
+					covered[lane] =
+						isInside(e0Lane[lane], e0eq.topLeft) &&
+						isInside(e1Lane[lane], e1eq.topLeft) &&
+						isInside(e2Lane[lane], e2eq.topLeft);
+					anyCovered |= covered[lane];
 				}
 
-				e0 += A12;
-				e1 += A20;
-				e2 += A01;
+				// Skip if no cover at all
+				if (!anyCovered)
+				{
+					e0Row += 2.0f * e0eq.A;
+					e1Row += 2.0f * e1eq.A;
+					e2Row += 2.0f * e2eq.A;
+					continue;
+				}
+
+				// Shade only covered pixels
+				for (int lane = 0; lane < 4; lane++)
+				{
+					if (!valid[lane] || !covered[lane]) continue;
+
+					float b0 = e0Lane[lane] * invArea;
+					float b1 = e1Lane[lane] * invArea;
+					float b2 = e2Lane[lane] * invArea;
+
+					float w0 = b0 * pv0.positionCS.w;
+					float w1 = b1 * pv1.positionCS.w;
+					float w2 = b2 * pv2.positionCS.w;
+
+					float invW = w0 + w1 + w2;
+					if (invW <= 0.0f) continue;
+
+					float depth = (w0 * s0.z + w1 * s1.z + w2 * s2.z) * (1.0f / invW);
+
+					if (depth < 0.0f || depth > 1.0f) continue;
+					if (depth >= depthBuffer(p[lane].x, p[lane].y)) continue;
+
+					float invInvW = 1.0f / invW;
+
+					Varyings i;
+					i.positionWS = (w0 * pv0.positionWS + w1 * pv1.positionWS + w2 * pv2.positionWS) * invInvW;
+					i.normalWS = glm::normalize((w0 * pv0.normalWS + w1 * pv1.normalWS + w2 * pv2.normalWS) * invInvW);
+					i.uv = (w0 * pv0.uv + w1 * pv1.uv + w2 * pv2.uv) * invInvW;
+
+					glm::vec4 color = shader->Fragment(i, uniforms);
+
+					if (color.a <= 0.0f) continue;
+
+					depthBuffer(p[lane].x, p[lane].y) = depth;
+					colorBuffer(p[lane].x, p[lane].y) = packColor(color);
+				}
+
+				e0Row += 2.0f * e0eq.A;
+				e1Row += 2.0f * e1eq.A;
+				e2Row += 2.0f * e2eq.A;
 			}
 		}
 	}

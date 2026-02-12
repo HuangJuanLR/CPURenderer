@@ -27,7 +27,6 @@ namespace CPURDR
 
 	glm::mat4 Camera::GetViewMatrix() const
 	{
-		// R-Hand match OpenGL
 		// return glm::lookAt(m_Position, m_Position + m_Front, m_Up);
 
 		// ===================================
