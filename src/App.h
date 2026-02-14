@@ -74,9 +74,16 @@ namespace CPURDR
 		std::vector<entt::entity> m_SelectedEntities;
 		bool m_HasSelection = false;
 
-		SDL_Renderer* m_ImGuiRenderer;
-		SDL_Texture* m_DisplayTexture;
+		SDL_Renderer* m_ImGuiRenderer; // deprecated
+		SDL_GPUTexture* m_DisplayTexture; // deprecated
+
+		SDL_GPUTexture* m_SceneGPUTexture = nullptr;
+		SDL_GPUTransferBuffer* m_SceneUploadBuffer = nullptr;
+		uint32_t m_SceneGPUWidth = 0;
+		uint32_t m_SceneGPUHeight = 0;
 
 		static App* s_Instance;
+
+		SDL_GPUDevice* m_GPUDevice;
 	};
 }

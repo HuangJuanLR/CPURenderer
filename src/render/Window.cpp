@@ -33,11 +33,12 @@ namespace CPURDR
 		}
 		m_WindowID = SDL_GetWindowID(m_Window);
 
-		m_Renderer = SDL_CreateRenderer(m_Window, nullptr);
-		if (!m_Renderer)
-		{
-			PLOG_ERROR << "Failed to create SDL_Renderer" << SDL_GetError() << std::endl;
-		}
+		m_Renderer = nullptr;
+		// m_Renderer = SDL_CreateRenderer(m_Window, nullptr);
+		// if (!m_Renderer)
+		// {
+		// 	PLOG_ERROR << "Failed to create SDL_Renderer" << SDL_GetError() << std::endl;
+		// }
 
 		SDL_DisplayID displayID = SDL_GetDisplayForWindow(m_Window);
 		const SDL_DisplayMode* displayMode = SDL_GetCurrentDisplayMode(displayID);
@@ -46,10 +47,10 @@ namespace CPURDR
 			m_RefreshRate = displayMode->refresh_rate;
 		}
 
-		if (m_VSync)
-		{
-			SDL_SetRenderVSync(m_Renderer, 1);
-		}
+		// if (m_VSync)
+		// {
+		// 	SDL_SetRenderVSync(m_Renderer, 1);
+		// }
 
 		m_Surface = SDL_GetWindowSurface(m_Window);
 		CreateContext();
